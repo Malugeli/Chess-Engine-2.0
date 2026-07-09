@@ -1,0 +1,10 @@
+# ninja log v6
+9	106	8044574320570365	CMakeFiles/ChessEngine.dir/src/board.cpp.obj.ddi	fd26f38f680c0f8f
+4	340	8045242364900198	CMakeFiles/ChessEngine.dir/src/main.cpp.obj.ddi	d2750fd169a6a6fb
+341	404	8045242368263054	CMakeFiles/ChessEngine.dir/src/board.cpp.obj.modmap	60e90c52cf4311ff
+341	404	8045242368263054	CMakeFiles/ChessEngine.dir/CXX.dd	60e90c52cf4311ff
+341	404	8045242368263054	CMakeFiles/ChessEngine.dir/CXXModules.json	60e90c52cf4311ff
+341	404	8045242368263054	CMakeFiles/ChessEngine.dir/src/main.cpp.obj.modmap	60e90c52cf4311ff
+2040	2687	8045242385259795	ChessEngine.exe	f5ac001cdf457ea9
+210	479	8044574322575508	CMakeFiles/ChessEngine.dir/src/board.cpp.obj	525a957a7eeb8a4a
+410	2040	8045242368959645	CMakeFiles/ChessEngine.dir/src/main.cpp.obj	26d291f0b5a15404

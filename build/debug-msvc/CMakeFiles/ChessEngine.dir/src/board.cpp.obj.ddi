@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "CMakeFiles\\ChessEngine.dir\\src\\board.cpp.obj",
+            "outputs": [
+                "C:\\Users\\aluge\\Desktop\\Computer Science\\Projekte\\Chess\\build\\debug-msvc\\vc140.pdb",
+                "CMakeFiles\\ChessEngine.dir\\src\\board.cpp.obj.ddi"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+Package: vcpkg-cmake-config
+Version: 2024-05-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: fde86d9a9f1c460a4fb38537388eea9f9be1c76fc42af6a269e7d55b77c5c950
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2024-04-23
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d0191cb5def3ffc51d30762c6c2ee7688761face6cef33d1580c5297527ae7b0
+Status: install ok installed
+
+Package: benchmark
+Version: 1.9.5
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 7213946e567f3dfd2e35b246a9c596c119f01259a04a1e1ab4e3f255f49dbc9d
+Description: A library to benchmark code snippets, similar to unit tests.
+Status: install ok installed
+
