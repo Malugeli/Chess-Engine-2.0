@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <utility>
-
+#include <print>
+#include <cassert>
 
 enum class Color : uint8_t {White = 0, Black = 1};
 
@@ -51,3 +52,8 @@ struct GameState{ // "Der GameState (und damit auch eine FEN) speichert ausschli
   uint8_t half_move_clock;
   uint8_t total_move_number;
 }; 
+
+constexpr uint64_t square_bb(Square square){ // macht draus eine Inline
+  assert(square != Square::None);
+  return 1ULL << std::to_underlying( square );
+};

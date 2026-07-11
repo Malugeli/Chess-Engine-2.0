@@ -34,21 +34,22 @@ uint64_t Board::get_bitmap(Color color, PieceType piece) const noexcept{
   return bitmaps[get_index(color, piece)];
 }
 
+const GameState& Board::get_gamestate() const noexcept{
+  return game_state;
+}
+
 uint64_t Board::get_color_board(Color color) const noexcept{
   return color_board[std::to_underlying(color)];
+}
+
+PieceType Board::get_piece_at(Square square) const noexcept{
+  return mailbox[std::to_underlying(square)];
 }
 
 uint64_t Board::occupied() const noexcept{
   return get_color_board(Color::White) | get_color_board(Color::Black);
 }
 
-const GameState& Board::get_gamestate() const noexcept{
-  return game_state;
-}
-
-PieceType Board::get_piece_at(Square square) const noexcept{
-  return mailbox[std::to_underlying(square)];
-}
 
 void Board::remove_piece(Color color, PieceType piece, Square square) noexcept{
   uint64_t mask = 1ULL << std::to_underlying(square);
@@ -77,5 +78,4 @@ Board::Board() {
   color_board[std::to_underlying(Color::Black)] = get_all_bitmaps(Color::Black);
   game_state = {Color::White, CastlingRight::any, Square::None, 0, 1};
   sync_mailbox_with_bitmaps();
-
 }
