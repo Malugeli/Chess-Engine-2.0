@@ -4,9 +4,6 @@ build/
 # clangd-Index-Cache
 .cache/
 
-# Maschinenspezifische CMake-Presets (dafür ist die Datei gedacht — enthält lokale Pfade)
-CMakeUserPresets.json
-
 # Editor-Konfiguration (maschinenspezifisch, z.B. absolute Pfade)
 .vscode/
 
