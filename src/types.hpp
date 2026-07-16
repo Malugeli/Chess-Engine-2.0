@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <utility>
-#include <print>
 #include <cassert>
 
 enum class Color : uint8_t {White = 0, Black = 1};

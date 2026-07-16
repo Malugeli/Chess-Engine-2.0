@@ -2,7 +2,8 @@
 #include <bit>
 
 uint8_t Board::get_index(Color color, PieceType piece) const noexcept {
-  return std::to_underlying(color) * PieceTypeCount + std::to_underlying(piece);
+  return static_cast<uint8_t>(std::to_underlying(color) * PieceTypeCount + //Integerpromtion causes warning
+                              std::to_underlying(piece));
 }
 
 uint64_t Board::get_all_bitmaps(Color color) const noexcept {
@@ -22,7 +23,7 @@ void Board::sync_mailbox_with_bitmaps() {
                         PieceType::Rook, PieceType::Queen, PieceType::King}) {
       uint64_t bitscan = bitmaps[get_index(c, p)];
       while (bitscan) {
-        uint8_t bit = std::countr_zero(bitscan);
+        uint8_t bit = static_cast<uint8_t>(std::countr_zero(bitscan));
         mailbox[bit] = p;
         bitscan &= bitscan-1;
       }

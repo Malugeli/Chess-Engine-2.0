@@ -6,12 +6,13 @@ project(ChessEngine CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 find_package(benchmark CONFIG REQUIRED)
 
-add_executable(ChessEngine 
-    src/main.cpp 
+add_executable(ChessEngine
+    src/main.cpp
     src/board.cpp
+    src/debug.cpp
+    src/movegen.cpp
 )
 
 # --- SENIOR DEVELOPER COMPILER WARNINGS ---

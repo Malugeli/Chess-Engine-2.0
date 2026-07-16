@@ -1,10 +1,13 @@
 #include <print>
-#include <benchmark/benchmark.h>
-#include "board.hpp"
+#include "movegen.hpp"
+#include "debug.hpp"
 
-//Ziel ist es immer const und noexcept zu machen wo ich kann!
+int main() {
+  // std::print("e4:\n{}\n", pretty_bitboard(kKnightAttack[std::to_underlying(Square::e4)]));
+  // std::print("a1:\n{}\n", pretty_bitboard(kKnightAttack[std::to_underlying(Square::a1)]));
+  // std::print("h8:\n{}\n", pretty_bitboard(kKnightAttack[std::to_underlying(Square::h8)]));
 
-int main(){
-    Board();
-    std::println("hello");
+  // std::print("h8:\n{}\n", pretty_bitboard(kKingAttack[std::to_underlying(Square::h8)]));
+  // std::print("e4:\n{}\n", pretty_bitboard(kKingAttack[std::to_underlying(Square::e4)]));
+  // std::print("a1:\n{}\n", pretty_bitboard(kKingAttack[std::to_underlying(Square::a1)]));
 }

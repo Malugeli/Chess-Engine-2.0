@@ -1,6 +1,8 @@
 #pragma once
 #include "board.hpp"
 
+//Wrapper Pieces:
+
 //Knight-Attack-Array
 inline constexpr std::array<uint64_t, 64> kKnightAttack = [](){
   std::array<uint64_t, 64> table{};
@@ -12,16 +14,16 @@ inline constexpr std::array<uint64_t, 64> kKnightAttack = [](){
 
   for (uint8_t square = 0; square < 64; ++square) {
     //uint8_t: bei negative Overflow wird die Zahl > 7, wichtig für unseren Check später
-    uint8_t rank = square / 8;
-    uint8_t file = square % 8;
+    int8_t rank = static_cast<int8_t>(square / 8);
+    int8_t file = square % 8;
 
     for (uint8_t i = 0; i < 8; ++i) {
-      uint8_t new_rank = rank + rank_offsets[i];
-      uint8_t new_file = file + file_offsets[i];
+      int8_t new_rank = rank + rank_offsets[i];
+      int8_t new_file = file + file_offsets[i];
 
       // Bound-Check: nur wenn Ziel noch auf dem Brett liegt.
-      if (new_rank <= 7 && new_file <= 7) {
-        uint8_t target = new_rank * 8 + new_file;
+      if(new_rank <= 7 && new_rank >= 0 && new_file <= 7 && new_file >= 0) {
+        int8_t target = static_cast<int8_t>((new_rank * 8) + new_file);
         table[square] |= square_bb(static_cast<Square>(target));
       }
     }
@@ -74,3 +76,8 @@ static_assert(kKingAttack[std::to_underlying(Square::h8)]
 static_assert(kKingAttack[std::to_underlying(Square::e4)]
 == (square_bb(Square::d3) | square_bb(Square::e3) | square_bb(Square::f3) | square_bb(Square::d4) 
 | square_bb(Square::f4) | square_bb(Square::d5) | square_bb(Square::e5) | square_bb(Square::f5))); 
+
+//Sliding Pieces:
+//Rook Attack: Ergebnis hängt von occupied ab -> Laufzeitfunktion statt Tabelle
+uint64_t rook_attack(Square square, uint64_t occupied);
+uint64_t RookAttack(Square square, uint64_t occupied);

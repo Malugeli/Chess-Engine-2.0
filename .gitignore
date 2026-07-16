@@ -1,0 +1,24 @@
+# Build-Output (CMake/Ninja) — pro Maschine unterschiedlich, wird immer neu generiert
+build/
+
+# clangd-Index-Cache
+.cache/
+
+# Maschinenspezifische CMake-Presets (dafür ist die Datei gedacht — enthält lokale Pfade)
+CMakeUserPresets.json
+
+# Editor-Konfiguration (maschinenspezifisch, z.B. absolute Pfade)
+.vscode/
+
+# Symlink auf die Compile-Datenbank im Projektroot (falls angelegt)
+/compile_commands.json
+
+# vcpkg-Installationsordner (falls er je im Projektroot landet)
+vcpkg_installed/
+
+# Lokale Claude-Code-Einstellungen (Berechtigungen dieser Maschine)
+.claude/settings.local.json
+
+# Windows-Dateisystem-Müll
+Thumbs.db
+desktop.ini
