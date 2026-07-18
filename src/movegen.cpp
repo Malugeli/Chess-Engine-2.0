@@ -1,17 +1,13 @@
 #include "movegen.hpp"
 
-uint64_t rook_attack(Square square, uint64_t occupied){
+uint64_t rook_attacks(Square square, uint64_t occupied){
   uint64_t attacks = 0ULL;
 
-  // Die 4 Himmelsrichtungen als (rank, file)-Paare: hoch, runter, rechts, links.
-  // Anders als beim Knight/King ist das KEIN Sprungziel, sondern eine Richtung,
-  // in der wir Schritt für Schritt weiterlaufen.
+  // Anders als beim Knight/King ist das KEIN Sprungziel, sondern eine Richtung in der wir Schritt für Schritt weiterlaufen.
   constexpr std::array<int8_t, 4> rank_directions{+1, -1, 0, 0};
   constexpr std::array<int8_t, 4> file_directions{0, 0, +1, -1};
 
   for(uint8_t direction = 0; direction < 4; ++direction){
-    // int statt uint8_t: wir laufen hier mehrfach, ein expliziter
-    // Range-Check liest sich dabei klarer als der Wrap-Trick.
     int rank = std::to_underlying(square) / 8;
     int file = std::to_underlying(square) % 8;
 
@@ -33,3 +29,33 @@ uint64_t rook_attack(Square square, uint64_t occupied){
   }
   return attacks;
 }
+
+uint64_t bishop_attacks(Square square, uint64_t occupied) {
+  uint64_t attacks = 0ULL;
+
+  constexpr std::array<int8_t, 4> rank_direction{+1, +1, -1, -1};
+  constexpr std::array<int8_t, 4> file_direction{-1, +1, -1, +1};
+  
+  for (uint8_t direction = 0; direction < 4; ++direction) {
+    int rank = std::to_underlying(square) / 8;
+    int file = std::to_underlying(square) % 8;
+    while (true) {
+      rank += rank_direction[direction];
+      file += file_direction[direction];
+
+      if (file > 7 || file < 0 || rank < 0 || rank > 7) {
+        break;
+      }
+      uint64_t target = square_bb(static_cast<Square>((rank * 8) + file));
+      attacks |= target;
+      if (occupied & target) {
+        break;
+      }
+    }
+  }
+  return attacks;
+}
+
+uint64_t queen_attacks(Square square, uint64_t occupied){
+  return bishop_attacks(square, occupied) | rook_attacks(square, occupied);
+};

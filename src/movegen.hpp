@@ -1,5 +1,6 @@
 #pragma once
-#include "board.hpp"
+#include "types.hpp"
+#include <array>
 
 //Wrapper Pieces:
 
@@ -78,5 +79,8 @@ static_assert(kKingAttack[std::to_underlying(Square::e4)]
 
 //Sliding Pieces:
 //Rook Attack: Ergebnis hängt von occupied ab -> Laufzeitfunktion statt Tabelle
-uint64_t rook_attack(Square square, uint64_t occupied);
-uint64_t RookAttack(Square square, uint64_t occupied);
+uint64_t rook_attacks(Square square, uint64_t occupied);
+
+uint64_t bishop_attacks(Square square, uint64_t occupied);
+
+uint64_t queen_attacks(Square square, uint64_t occupied);
