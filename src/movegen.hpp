@@ -51,16 +51,15 @@ inline constexpr std::array<uint64_t, 64> kKingAttack = [](){
   std::array<int8_t, 8> rank_offsets{+1, +1, +1, 0, 0, -1, -1, -1};
   std::array<int8_t, 8> file_offsets{-1, 0, +1, -1, +1, -1, 0, +1};
 
-  for(uint8_t square = 0; square < 64; ++square){
-    uint8_t rank = square / 8;
-    uint8_t file = square % 8;
-
+  for(int square = 0; square < 64; ++square){
+    int rank = square / 8;
+    int file = square % 8; //durch integerpromotion und Compiletime unnötig int8 zu nutzen 
     for(uint8_t offset = 0; offset < 8; ++offset){
-      uint8_t new_rank = rank + rank_offsets[offset];
-      uint8_t new_file = file + file_offsets[offset];
+      int new_rank = rank + rank_offsets[offset];
+      int new_file = file + file_offsets[offset];
 
-      if(new_rank <= 7 && new_file <= 7){
-        table[square] |= square_bb(static_cast<Square>((new_rank * 8) + new_file));
+      if(new_rank <= 7 && new_rank >= 0 && new_file <= 7 && new_file >= 0){
+        table[static_cast<std::size_t>( square )] |= square_bb(static_cast<Square>((new_rank * 8) + new_file));
       }
     }
   }
