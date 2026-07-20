@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include <array>
 
-//Wrapper Pieces:
+//Leaper Pieces:
 
 //Knight-Attack-Array
 inline constexpr std::array<uint64_t, 64> kKnightAttack = [](){
@@ -84,3 +84,44 @@ uint64_t rook_attacks(Square square, uint64_t occupied);
 uint64_t bishop_attacks(Square square, uint64_t occupied);
 
 uint64_t queen_attacks(Square square, uint64_t occupied);
+
+
+/*
+Pawns sind Leaper. Ich vergesse ständig das wir nur eine Karte mit den möglichen Zügen erstellen statt die möglichen Squares die wir gehen dürfen.
+*/
+
+inline constexpr std::array<std::array<uint64_t, 64>, 2> kPawnAttack = []() {
+  std::array<std::array<uint64_t, 64>, 2> attack{};
+  std::array<int, 2> pawn_direction{-1, +1};
+
+  for(int square = 0; square < 64; ++square){ 
+    int rank = square / 8;
+    rank++; 
+    if(rank > 7){
+      break;
+    }
+    for(uint8_t direction = 0; direction < 2; ++direction){
+      int file = square % 8;
+      file += pawn_direction[direction];
+      if(file >= 0 && file < 8){
+        int target = rank * 8 + file;
+        attack[std::to_underlying( Color::White )][static_cast<uint64_t>( square )] |= square_bb(static_cast<Square>(target));
+      }}
+    }
+  for(int square = 63; square >= 0; --square){ 
+    int rank = square / 8;
+    rank--; 
+    if(rank < 0){
+      break;
+    }
+    for(uint8_t direction = 0; direction < 2; ++direction){
+      int file = square % 8;
+      file += pawn_direction[direction];
+      if(file >= 0 && file < 8){
+        int target = rank * 8 + file;
+        attack[std::to_underlying( Color::Black )][static_cast<uint64_t>( square )] |= square_bb(static_cast<Square>(target));
+      }}
+    }
+    return attack; 
+  }
+();
