@@ -6,6 +6,7 @@
 enum class Color : uint8_t {White = 0, Black = 1};
 
 enum class PieceType : uint8_t {Pawn = 0, Knight = 1, Bishop = 2, Rook = 3, Queen = 4, King = 5, None = 6};
+constexpr auto operator+(PieceType piece) { return std::to_underlying(piece); }
 
 static constexpr uint8_t PieceTypeCount = 6;
 
@@ -22,12 +23,15 @@ enum class Square : uint8_t {
     None = 64
 };
 
+constexpr auto operator+(Square s) { return std::to_underlying(s); }
+
 enum class CastlingRight : uint8_t {
-  white_short = 0b0000'0001,
-  white_long = 0b0000'0010,
-  black_short = 0b0000'0100,
-  black_long = 0b0000'1000, // ich wollte die Schreibweise einfach mal nehmen =)
-  any = 0b0000'1111
+  // ich wollte die 0b Schreibweise mal nutzen
+  White_Short = 0b0000'0001,
+  White_Long = 0b0000'0010,
+  Black_Short = 0b0000'0100,
+  Black_Long = 0b0000'1000,
+  Any = 0b0000'1111
 };
 
 constexpr CastlingRight operator|(CastlingRight left, CastlingRight right) {
@@ -50,9 +54,71 @@ struct GameState{ // "Der GameState (und damit auch eine FEN) speichert ausschli
   Square ep_square;
   uint8_t half_move_clock;
   uint8_t total_move_number;
-}; 
+};
 
-constexpr uint64_t square_bb(Square square){ // macht draus eine Inline
+inline constexpr uint64_t square_bb(Square square) {
   assert(square != Square::None);
-  return 1ULL << std::to_underlying( square );
+  return 1ULL << std::to_underlying(square);
+};
+
+enum class MoveType : uint16_t {
+  Normal,
+  Promotion = 1 << 14,
+  En_Passant = 2 << 14,
+  Castling = 3 << 14
+};
+
+constexpr auto operator+(MoveType t){ return std::to_underlying(t);} 
+
+// Move braucht 16 Bits um einen Zug darstellen zu können
+// bit  0- 5: Zielfeld (0 - 63 = 6 Bits)
+// bit  6-11: Startfeld (s. o.)
+// bit 12-13: Promotion (4 mögliche Figuren - 2 Bits)
+// bit 14-15: "Special Move Flag": Promotion (1), En Passant (2), Rochade (3) die 0 ist Normalzug siehe oben für MoveType. 
+
+class Move{
+public:
+  //Initialisierung 
+  Move() = default;
+  explicit Move(uint16_t d) : data(d) {};
+  Move(Square from, Square to)
+      : Move(static_cast<uint16_t>(+from << 6) +
+             +to) {};
+
+  //Make
+  template<MoveType T> 
+  static constexpr  Move make(Square from, Square to, PieceType pt = PieceType::Knight) {
+    return Move(static_cast<uint16_t>(+T + ((+pt - +PieceType::Knight) << 12)) +
+                (+from << 6) + +to);
+  }
+
+  // Unmake: extrahiere alle Parts des Moves vor dem ausführen
+  constexpr Square from_sq() const {
+    assert(is_ok());
+    return static_cast<Square>((data >> 6) & 63);
+  }
+  constexpr Square to_sq() const {
+    assert(is_ok());
+    return static_cast<Square>(data & 63);
+  }
+  constexpr MoveType type_of() const {
+    return static_cast<MoveType>(data & (3 << 14));
+  }
+  constexpr PieceType promotion_piece() const {
+    return static_cast<PieceType>(((data >> 12) & 3) + +PieceType::Knight);
+  }
+
+  static constexpr Move null_move() { return Move(65); } // null ist: "Gegner darf zwei Züge machen" relevant für Algorithmus
+  static constexpr Move none_move() { return Move(0); } // wenn z. B. noch kein Move gefunden wurden
+
+  constexpr bool is_ok() const {return none_move().data != data && null_move().data != data;} //Magic Number = Bad
+
+  //Operatoroverload
+  constexpr bool operator==(const Move& m){return m.data == data;}
+  constexpr bool operator!=(const Move& m){return m.data != data;}
+  constexpr explicit operator bool() const { return data != 0;}
+  constexpr uint16_t get_raw_move() const {return data;}
+
+protected:
+  uint16_t data{};
 };

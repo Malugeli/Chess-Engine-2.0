@@ -77,6 +77,6 @@ Board::Board() {
 
   color_board[std::to_underlying(Color::White)] = get_all_bitmaps(Color::White);
   color_board[std::to_underlying(Color::Black)] = get_all_bitmaps(Color::Black);
-  game_state = {Color::White, CastlingRight::any, Square::None, 0, 1};
+  game_state = {Color::White, CastlingRight::Any, Square::None, 0, 1};
   sync_mailbox_with_bitmaps();
 }
