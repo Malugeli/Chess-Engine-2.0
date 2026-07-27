@@ -2,21 +2,21 @@
 #include <bit>
 
 uint8_t Board::get_index(Color color, PieceType piece) const noexcept {
-  return static_cast<uint8_t>(std::to_underlying(color) * PieceTypeCount + //Integerpromtion causes warning
-                              std::to_underlying(piece));
+  return static_cast<uint8_t>(+color * PieceTypeCount + +piece);
 }
 
 uint64_t Board::get_all_bitmaps(Color color) const noexcept {
-  uint64_t result = 0ULL;
+  uint64_t all = 0ULL;
   for (uint8_t i = 0; i < PieceTypeCount; ++i) {
-    result =
-        result | bitmaps[get_index(color, static_cast<PieceType>(i))];
+    all = all | bitmaps[get_index(color, static_cast<PieceType>(i))];
   }
-  return result;
+  return all;
 }
 
 void Board::sync_mailbox_with_bitmaps() {
-  mailbox.fill(PieceType::None);
+  for(uint8_t i = 0; i < 2; ++i){
+    mailbox[i].fill(PieceType::None);
+  }
 
   for (Color c : {Color::White, Color::Black}) {
     for (PieceType p : {PieceType::Pawn, PieceType::Knight, PieceType::Bishop,
@@ -24,7 +24,7 @@ void Board::sync_mailbox_with_bitmaps() {
       uint64_t bitscan = bitmaps[get_index(c, p)];
       while (bitscan) {
         uint8_t bit = static_cast<uint8_t>(std::countr_zero(bitscan));
-        mailbox[bit] = p;
+        mailbox[+c][bit] = p;
         bitscan &= bitscan-1;
       }
     }
@@ -40,11 +40,11 @@ const GameState& Board::get_gamestate() const noexcept{
 }
 
 uint64_t Board::get_color_board(Color color) const noexcept{
-  return color_board[std::to_underlying(color)];
+  return color_board[+color];
 }
 
-PieceType Board::get_piece_at(Square square) const noexcept{
-  return mailbox[std::to_underlying(square)];
+PieceType Board::get_piece_at(Color c, Square square) const noexcept{
+  return mailbox[+c][+square];
 }
 
 uint64_t Board::occupied() const noexcept{
@@ -53,11 +53,11 @@ uint64_t Board::occupied() const noexcept{
 
 
 void Board::remove_piece(Color color, PieceType piece, Square square) noexcept{
-  uint64_t mask = 1ULL << std::to_underlying(square);
+  uint64_t mask = 1ULL << +square;
 
   bitmaps[get_index(color, piece)] &= ~mask;
-  color_board[std::to_underlying(color)] &= ~mask;
-  mailbox[std::to_underlying(square)] = PieceType::None;
+  color_board[+color] &= ~mask;
+  mailbox[+color][+square] = PieceType::None;
 }
 
 Board::Board() {
@@ -75,8 +75,8 @@ Board::Board() {
   bitmaps[get_index(Color::Black, PieceType::Queen)] = 0x08ULL << 56;
   bitmaps[get_index(Color::Black, PieceType::King)] = 0x10ULL << 56;
 
-  color_board[std::to_underlying(Color::White)] = get_all_bitmaps(Color::White);
-  color_board[std::to_underlying(Color::Black)] = get_all_bitmaps(Color::Black);
+  color_board[+Color::White] = get_all_bitmaps(Color::White);
+  color_board[+Color::Black] = get_all_bitmaps(Color::Black);
   game_state = {Color::White, CastlingRight::Any, Square::None, 0, 1};
   sync_mailbox_with_bitmaps();
 }

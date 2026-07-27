@@ -4,6 +4,7 @@
 #include <cassert>
 
 enum class Color : uint8_t {White = 0, Black = 1};
+constexpr auto operator+(Color c){ return std::to_underlying(c);}
 
 enum class PieceType : uint8_t {Pawn = 0, Knight = 1, Bishop = 2, Rook = 3, Queen = 4, King = 5, None = 6};
 constexpr auto operator+(PieceType piece) { return std::to_underlying(piece); }
@@ -58,7 +59,7 @@ struct GameState{ // "Der GameState (und damit auch eine FEN) speichert ausschli
 
 inline constexpr uint64_t square_bb(Square square) {
   assert(square != Square::None);
-  return 1ULL << std::to_underlying(square);
+  return 1ULL << +square;
 };
 
 enum class MoveType : uint16_t {
@@ -89,7 +90,7 @@ public:
   template<MoveType T> 
   static constexpr  Move make(Square from, Square to, PieceType pt = PieceType::Knight) {
     return Move(static_cast<uint16_t>(+T + ((+pt - +PieceType::Knight) << 12)) +
-                (+from << 6) + +to);
+                static_cast<uint16_t>(+from << 6) + +to);
   }
 
   // Unmake: extrahiere alle Parts des Moves vor dem ausführen
@@ -114,8 +115,7 @@ public:
   constexpr bool is_ok() const {return none_move().data != data && null_move().data != data;} //Magic Number = Bad
 
   //Operatoroverload
-  constexpr bool operator==(const Move& m){return m.data == data;}
-  constexpr bool operator!=(const Move& m){return m.data != data;}
+  constexpr bool operator==(const Move&) const = default; // neu in 20, kein != Operator nötig, default checkt einfach alle non static Member. Zero cost abstraction, gibt auch Nachteile falls gewisse Member nicht verglichen werden sollen aber mehr in den Notizen
   constexpr explicit operator bool() const { return data != 0;}
   constexpr uint16_t get_raw_move() const {return data;}
 
