@@ -5,8 +5,8 @@
 class Board {
 private:
   //Membervariablen:
-  std::array<uint64_t, 12> bitmaps{};
-  std::array<std::array<PieceType, 64>, 2> mailbox{};
+  std::array<uint64_t, 14> bitmaps{};
+  std::array<Piece, 64>mailbox{};
   std::array<uint64_t, 2> color_board{};
   GameState game_state{};
 
@@ -20,6 +20,6 @@ public:
   uint64_t get_bitmap(Color color, PieceType piece) const noexcept;
   uint64_t get_color_board(Color color) const noexcept;
   const GameState& get_gamestate() const noexcept;
-  PieceType get_piece_at(Color c, Square square) const noexcept;
+  Piece get_piece_at(Square square) const noexcept;
   uint64_t occupied() const noexcept;
 };

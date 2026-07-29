@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <utility>
 #include <cassert>
+static constexpr uint8_t PieceTypeCount = 6;
 
 enum class Color : uint8_t {White = 0, Black = 1};
 constexpr auto operator+(Color c){ return std::to_underlying(c);}
@@ -9,7 +10,22 @@ constexpr auto operator+(Color c){ return std::to_underlying(c);}
 enum class PieceType : uint8_t {Pawn = 0, Knight = 1, Bishop = 2, Rook = 3, Queen = 4, King = 5, None = 6};
 constexpr auto operator+(PieceType piece) { return std::to_underlying(piece); }
 
-static constexpr uint8_t PieceTypeCount = 6;
+enum class Piece : uint8_t {
+  WhitePawn = 0, WhiteKnight = 1, WhiteBishop = 2, WhiteRook = 3, WhiteQueen = 4, WhiteKing = 5,
+  None = 7,
+  BlackPawn = 8, BlackKnight = 9, BlackBishop = 10, BlackRook = 11, BlackQueen = 12, BlackKing = 13
+};
+constexpr auto operator+(Piece p){return std::to_underlying(p);}
+
+constexpr Color color_of(Piece p) {
+  return static_cast<Color>(+p >> 3);
+}
+static_assert(( color_of(Piece::BlackRook) == Color::Black));
+
+constexpr PieceType piece_of(Piece p) {
+  return static_cast<PieceType>(+p & 7);
+}
+static_assert(piece_of(Piece::WhiteBishop) == PieceType::Bishop);
 
 enum class Square : uint8_t {
     a1 = 0, b1 = 1, c1 = 2, d1 = 3, e1 = 4, f1 = 5, g1 = 6, h1 = 7,

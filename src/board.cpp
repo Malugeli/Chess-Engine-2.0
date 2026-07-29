@@ -2,7 +2,8 @@
 #include <bit>
 
 uint8_t Board::get_index(Color color, PieceType piece) const noexcept {
-  return static_cast<uint8_t>(+color * PieceTypeCount + +piece);
+  assert(piece != PieceType::None);
+  return static_cast<uint8_t>(( +color << 3 ) | +piece); //disjunktes Bitlayout, in den untersten 4 Bits liegt die Color als Bit und 3 Bits für das Piece
 }
 
 uint64_t Board::get_all_bitmaps(Color color) const noexcept {
@@ -14,18 +15,17 @@ uint64_t Board::get_all_bitmaps(Color color) const noexcept {
 }
 
 void Board::sync_mailbox_with_bitmaps() {
-  for(uint8_t i = 0; i < 2; ++i){
-    mailbox[i].fill(PieceType::None);
-  }
+  mailbox.fill(Piece::None);
 
   for (Color c : {Color::White, Color::Black}) {
     for (PieceType p : {PieceType::Pawn, PieceType::Knight, PieceType::Bishop,
                         PieceType::Rook, PieceType::Queen, PieceType::King}) {
       uint64_t bitscan = bitmaps[get_index(c, p)];
+      Piece piece = static_cast<Piece>(get_index(c, p));
       while (bitscan) {
         uint8_t bit = static_cast<uint8_t>(std::countr_zero(bitscan));
-        mailbox[+c][bit] = p;
-        bitscan &= bitscan-1;
+        mailbox[bit] = piece;
+        bitscan &= bitscan - 1;
       }
     }
   }
@@ -43,8 +43,8 @@ uint64_t Board::get_color_board(Color color) const noexcept{
   return color_board[+color];
 }
 
-PieceType Board::get_piece_at(Color c, Square square) const noexcept{
-  return mailbox[+c][+square];
+Piece Board::get_piece_at(Square square) const noexcept{
+  return mailbox[+square];
 }
 
 uint64_t Board::occupied() const noexcept{
@@ -57,7 +57,7 @@ void Board::remove_piece(Color color, PieceType piece, Square square) noexcept{
 
   bitmaps[get_index(color, piece)] &= ~mask;
   color_board[+color] &= ~mask;
-  mailbox[+color][+square] = PieceType::None;
+  mailbox[+square] = Piece::None;
 }
 
 Board::Board() {
