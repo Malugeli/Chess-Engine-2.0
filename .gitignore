@@ -19,5 +19,8 @@ vcpkg_installed/
 # Windows-Dateisystem-Müll
 Thumbs.db
 desktop.ini
+
+# Persönliche Arbeitsdateien, nicht fürs Repo bestimmt
 to-do.md
 Notizen.md
+CLAUDE.md
