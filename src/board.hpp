@@ -12,11 +12,14 @@ private:
 
   //Hilfsfunktionen:
   uint8_t get_index(Color color, PieceType piece) const noexcept;
-  uint64_t get_all_bitmaps(Color color) const noexcept;
-  void sync_mailbox_with_bitmaps();
+  uint64_t get_color_bitmap(Color color) const noexcept;
+  void sync_mailbox_with_bitmaps() noexcept;
+  void add_piece(Color c, PieceType p, Square s) noexcept;
+  void move_piece(Color c, PieceType p, Square from, Square to) noexcept;
   void remove_piece(Color color, PieceType piece, Square square) noexcept;
 public:
   Board();
+  void make_move(Move m) noexcept;
   uint64_t get_bitmap(Color color, PieceType piece) const noexcept;
   uint64_t get_color_board(Color color) const noexcept;
   const GameState& get_gamestate() const noexcept;
