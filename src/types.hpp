@@ -27,6 +27,10 @@ constexpr PieceType piece_of(Piece p) {
 }
 static_assert(piece_of(Piece::WhiteBishop) == PieceType::Bishop);
 
+constexpr Piece make_piece(Color c, PieceType p) {
+  return static_cast<Piece>((+c << 3) | +p);
+};
+
 enum class Square : uint8_t {
     a1 = 0, b1 = 1, c1 = 2, d1 = 3, e1 = 4, f1 = 5, g1 = 6, h1 = 7,
     a2 = 8, b2 = 9, c2 = 10, d2 = 11, e2 = 12, f2 = 13, g2 = 14, h2 = 15,
@@ -51,21 +55,22 @@ enum class CastlingRight : uint8_t {
   Any = 0b0000'1111
 };
 
+constexpr auto operator+(CastlingRight cr){ return std::to_underlying(cr);}
+
 constexpr CastlingRight operator|(CastlingRight left, CastlingRight right) {
-  return static_cast<CastlingRight>(std::to_underlying(left) |
-                                    std::to_underlying(right));
+  return static_cast<CastlingRight>(+left | +right);
 }
-
 constexpr CastlingRight operator&(CastlingRight left, CastlingRight right) {
-  return static_cast<CastlingRight>(std::to_underlying(left) &
-                                    std::to_underlying(right));
+  return static_cast<CastlingRight>(+left & +right);
 }
-
 constexpr CastlingRight operator~(CastlingRight castling_rights) {
-  return static_cast<CastlingRight>(~std::to_underlying(castling_rights));
+  return static_cast<CastlingRight>(~+castling_rights);
 }
 
-struct GameState{ // "Der GameState (und damit auch eine FEN) speichert ausschließlich historische oder "unsichtbare" Status-Informationen, die man nicht allein durch das Betrachten der aktuellen Figuren auf dem Brett herleiten kann."
+
+// Der GameState (und damit auch eine FEN) speichert ausschließlich historische oder "unsichtbare" 
+// Status-Informationen, die man nicht allein durch das Betrachten der aktuellen Figuren auf dem Brett herleiten kann.
+struct GameState{ 
   Color side_to_move;
   CastlingRight castling_rights;
   Square ep_square;
@@ -79,7 +84,7 @@ inline constexpr uint64_t square_bb(Square square) {
 };
 
 enum class MoveType : uint16_t {
-  Normal,
+  Normal = 0,
   Promotion = 1 << 14,
   En_Passant = 2 << 14,
   Castling = 3 << 14
@@ -118,11 +123,13 @@ public:
     assert(is_ok());
     return static_cast<Square>(data & 63);
   }
-  constexpr MoveType type_of() const {
-    return static_cast<MoveType>(data & (3 << 14));
-  }
   constexpr PieceType promotion_piece() const {
+    assert(is_ok());
     return static_cast<PieceType>(((data >> 12) & 3) + +PieceType::Knight);
+  }
+  constexpr MoveType type_of() const {
+    assert(is_ok());
+    return static_cast<MoveType>(data & (3 << 14));
   }
 
   static constexpr Move null_move() { return Move(65); } // null ist: "Gegner darf zwei Züge machen" relevant für Algorithmus
