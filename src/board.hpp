@@ -26,7 +26,7 @@ private:
 
 public:
   Board();
-  void do_move(Move m, GameState& gamestate) noexcept;
+  void do_move(Move m) noexcept;
   void undo_move(Move m) noexcept;
   uint64_t get_bitmap(Color color, PieceType piece) const noexcept;
   uint64_t get_color_board(Color color) const noexcept;
