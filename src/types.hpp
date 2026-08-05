@@ -77,7 +77,8 @@ struct GameState{
   CastlingRight castling_rights;
   Square ep_square;
   uint8_t half_move_clock;
-  uint8_t total_move_number;
+  uint8_t total_move_count;
+  Piece captured_piece;
 };
 
 inline constexpr uint64_t square_bb(Square square) {

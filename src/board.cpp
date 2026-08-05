@@ -112,56 +112,79 @@ void Board::remove_piece(Color c, PieceType p, Square s) noexcept {
 
 //bevor ich den Zug ausführe muss den Gamestate speichern um es später wieder rückgängig zu machen
 //statt einem std::stack nutze ich ein festes Array von (vorerst)
-void Board::do_move(Move m, GameState& gamestate) noexcept {
+void Board::do_move(Move m) noexcept {
   auto from_square = m.from_sq();
   auto to_square = m.to_sq();
   auto from_piece = mailbox[+from_square];
   auto to_piece = mailbox[+to_square];
-
-
+  
+  ++game_state.half_move_clock;  
+  game_state.ep_square = Square::None;
+  
   switch(m.type_of()){
-  case MoveType::Normal:
-    if (to_piece != Piece::None) {
+    case MoveType::Normal:
+    if(piece_of(from_piece) == PieceType::Pawn || to_piece != Piece::None){ // Wenn Bauer sich bewegt oder Figur geschlagen, setze halfmove auf 0
+      game_state.half_move_clock = 0;
+    }
+    
+    if(to_piece != Piece::None) { // Schlag
+      game_state.captured_piece = to_piece;
       remove_piece(color_of(to_piece), piece_of(to_piece), to_square);
     }
+    
+    if(piece_of(from_piece) == PieceType::Pawn && std::abs( +to_square - +from_square ) == 16){ // En Passant
+      game_state.ep_square = static_cast<Square>( ( +from_square + +to_square ) / 2 ); // genial
+    }
+    
+    game_state.castling_rights &= castling_mask[+from_square];
+    game_state.castling_rights &= castling_mask[+to_square];
     move_piece(color_of(from_piece), piece_of(from_piece), from_square,
-               to_square);
+    to_square);
+    
     break;
-
-  case MoveType::Castling:
+    
+    case MoveType::Castling:
     switch (to_square) {
-    case Square::h1:
+      case Square::h1:
       move_piece(Color::White, PieceType::Rook, Square::h1, Square::f1);
       move_piece(Color::White, PieceType::King, Square::e1, Square::g1);
       break;
-
-    case Square::a1:
+      
+      case Square::a1:
       move_piece(Color::White, PieceType::Rook, Square::a1, Square::d1);
       move_piece(Color::White, PieceType::King, Square::e1, Square::c1);
+      move_piece(Color::Black, PieceType::King, Square::e8, Square::g8);
       break;
-
-    case Square::h8:
+      
+      case Square::h8:
       move_piece(Color::Black, PieceType::Rook, Square::h8, Square::f8);
       move_piece(Color::Black, PieceType::King, Square::e8, Square::g8);
       break;
-
-    case Square::a8:
+      
+      case Square::a8:
       move_piece(Color::Black, PieceType::Rook, Square::a8, Square::d8);
       move_piece(Color::Black, PieceType::King, Square::e8, Square::c8);
       break;
-
-    default:
+      default:
       break;
     }
-     
+    break;
     
-  case MoveType::En_Passant:
-  break;
-  
-  case MoveType::Promotion:
-  break;
-}
-  gamestate.side_to_move = static_cast<Color>(!+gamestate.side_to_move); // so ein genialer Trick um zu switchen omg
+    case MoveType::En_Passant:
+    break;
+    
+    case MoveType::Promotion:
+    break;
+  }
+  // Was mache ich mit Captured Piece? Wenn kein Zug ein Piece gecaptured hat kann ich doch nicht im Gamestate das letzte gecapturete Piece behalten oder nicht?
+  if (game_state.side_to_move == Color::Black)
+  ++game_state.total_move_count;
+
+game_state.castling_rights &= castling_mask[+from_square] & castling_mask[+to_square];
+game_state.side_to_move = static_cast<Color>(
+  !+game_state.side_to_move); // so ein genialer Trick um zu switchen omg
+  history[ply] = game_state;
+  ++ply;
 };
 
 //eine Art Stack muss beigelegt werden oder? do_move müsste eine Art Stack füllen mit moves und das reichen wir undo weiter.
@@ -178,7 +201,7 @@ Board::Board() {
 
   color_board[+Color::White] = get_color_bitmap(Color::White);
   color_board[+Color::Black] = get_color_bitmap(Color::Black);
-  game_state = {Color::White, CastlingRight::Any, Square::None, 0, 1};
+  game_state = {Color::White, CastlingRight::Any, Square::None, 0, 1, Piece::None}; // halfmove_clock und total_move sind magic numbers.. kann ich das irgendwie richten?
 
   sync_mailbox_with_bitmaps();
 }
