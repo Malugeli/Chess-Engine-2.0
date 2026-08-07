@@ -117,7 +117,9 @@ void Board::do_move(Move m) noexcept {
   auto to_square = m.to_sq();
   auto from_piece = mailbox[+from_square];
   auto to_piece = mailbox[+to_square];
-  
+
+  history[ply] = game_state; // vor einer Änderung abspeichern
+
   ++game_state.half_move_clock;  
   game_state.ep_square = Square::None;
   
@@ -127,20 +129,16 @@ void Board::do_move(Move m) noexcept {
       game_state.half_move_clock = 0;
     }
     
+    game_state.captured_piece = to_piece;
     if(to_piece != Piece::None) { // Schlag
-      game_state.captured_piece = to_piece;
       remove_piece(color_of(to_piece), piece_of(to_piece), to_square);
     }
     
-    if(piece_of(from_piece) == PieceType::Pawn && std::abs( +to_square - +from_square ) == 16){ // En Passant
-      game_state.ep_square = static_cast<Square>( ( +from_square + +to_square ) / 2 ); // genial
+    if(piece_of(from_piece) == PieceType::Pawn && ( +from_square ^ +to_square ) == 16){ // En Passant, das XOR gilt nur bei Rank 1 - 3, 2 - 4, 5 - 7, 6 - 8. Nur zwei dieser vier sind legale Pawnmoves!
+      game_state.ep_square = static_cast<Square>( +to_square ^ 8 ); // Selbes Szenario bei Rank 5 mit XX100XXX und bei Rank 4 XX011XXX sorgt der XOR dafür das der erste Bit von 011 fällt und bei Rank 5 eins hochgeht 
     }
-    
-    game_state.castling_rights &= castling_mask[+from_square];
-    game_state.castling_rights &= castling_mask[+to_square];
     move_piece(color_of(from_piece), piece_of(from_piece), from_square,
     to_square);
-    
     break;
     
     case MoveType::Castling:
@@ -153,7 +151,6 @@ void Board::do_move(Move m) noexcept {
       case Square::a1:
       move_piece(Color::White, PieceType::Rook, Square::a1, Square::d1);
       move_piece(Color::White, PieceType::King, Square::e1, Square::c1);
-      move_piece(Color::Black, PieceType::King, Square::e8, Square::g8);
       break;
       
       case Square::h8:
@@ -171,20 +168,24 @@ void Board::do_move(Move m) noexcept {
     break;
     
     case MoveType::En_Passant:
+    remove_piece(color_of( to_piece ), piece_of( to_piece ), static_cast<Square>( +to_square ^ 8 ));
+    move_piece(from)
     break;
     
     case MoveType::Promotion:
     break;
   }
   // Was mache ich mit Captured Piece? Wenn kein Zug ein Piece gecaptured hat kann ich doch nicht im Gamestate das letzte gecapturete Piece behalten oder nicht?
-  if (game_state.side_to_move == Color::Black)
-  ++game_state.total_move_count;
+  if (game_state.side_to_move == Color::Black) {
+    ++game_state.total_move_count;
+  }
+  game_state.side_to_move = static_cast<Color>(
+      !+game_state.side_to_move); // so ein genialer Trick um zu switchen omg
 
 game_state.castling_rights &= castling_mask[+from_square] & castling_mask[+to_square];
-game_state.side_to_move = static_cast<Color>(
-  !+game_state.side_to_move); // so ein genialer Trick um zu switchen omg
-  history[ply] = game_state;
-  ++ply;
+
+
+++ply;
 };
 
 //eine Art Stack muss beigelegt werden oder? do_move müsste eine Art Stack füllen mit moves und das reichen wir undo weiter.
