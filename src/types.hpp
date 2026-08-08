@@ -94,6 +94,7 @@ enum class MoveType : uint16_t {
 };
 
 constexpr auto operator+(MoveType t){ return std::to_underlying(t);} 
+//sollte ich eine Funktion schreiben die mir das Promotion Piece in Piecetype returned?
 
 // Move braucht 16 Bits um einen Zug darstellen zu können
 // bit  0- 5: Zielfeld (0 - 63 = 6 Bits)
@@ -113,6 +114,7 @@ public:
   //Make
   template<MoveType T> 
   static constexpr  Move make(Square from, Square to, PieceType pt = PieceType::Knight) {
+    assert(+pt >= +PieceType::Knight && +pt <= +PieceType::Queen);
     return Move(static_cast<uint16_t>(+T + ((+pt - +PieceType::Knight) << 12)) +
                 static_cast<uint16_t>(+from << 6) + +to);
   }
