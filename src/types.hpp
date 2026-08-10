@@ -105,30 +105,29 @@ constexpr auto operator+(MoveType t){ return std::to_underlying(t);}
 class Move{
 public:
   //Initialisierung 
-  Move() = default;
-  explicit Move(uint16_t d) : data(d) {};
-  Move(Square from, Square to)
-      : Move(static_cast<uint16_t>(+from << 6) +
-             +to) {};
+Move() = default;
+explicit Move(uint16_t d) : data(d) {};
+Move(Square from, Square to)
+    : Move(static_cast<uint16_t>(+from << 6) +
+            +to) {};
 
-  //Make
-  template<MoveType T> 
-  static constexpr  Move make(Square from, Square to, PieceType pt = PieceType::Knight) {
-    assert(+pt >= +PieceType::Knight && +pt <= +PieceType::Queen);
-    return Move(static_cast<uint16_t>(+T + ((+pt - +PieceType::Knight) << 12)) +
-                static_cast<uint16_t>(+from << 6) + +to);
-  }
+//Make
+template<MoveType T> 
+static constexpr  Move make(Square from, Square to, PieceType pt = PieceType::Knight) {
+  assert(+pt >= +PieceType::Knight && +pt <= +PieceType::Queen);
+  return Move( static_cast<uint16_t>( (+T + ((+pt - +PieceType::Knight) << 12)) + (+from << 6) + +to ) );
+}
 
-  // Unmake: extrahiere alle Parts des Moves vor dem ausführen
-  constexpr Square from_sq() const {
-    assert(is_ok());
-    return static_cast<Square>((data >> 6) & 63);
-  }
-  constexpr Square to_sq() const {
-    assert(is_ok());
-    return static_cast<Square>(data & 63);
-  }
-  constexpr PieceType promotion_piece() const {
+// Unmake: extrahiere alle Parts des Moves vor dem ausführen
+constexpr Square from_sq() const {
+  assert(is_ok());
+  return static_cast<Square>((data >> 6) & 63);
+}
+constexpr Square to_sq() const {
+  assert(is_ok());
+  return static_cast<Square>(data & 63);
+}
+constexpr PieceType promotion_piece() const {
     assert(is_ok());
     return static_cast<PieceType>(((data >> 12) & 3) + +PieceType::Knight);
   }

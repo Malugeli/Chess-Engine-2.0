@@ -113,12 +113,14 @@ void Board::remove_piece(Color c, PieceType p, Square s) noexcept {
 //bevor ich den Zug ausführe muss den Gamestate speichern um es später wieder rückgängig zu machen
 //statt einem std::stack nutze ich ein festes Array von (vorerst)
 void Board::do_move(Move m) noexcept {
-  auto from_square = m.from_sq();
-  auto to_square = m.to_sq();
-  auto from_piece = mailbox[+from_square];
-  auto to_piece = mailbox[+to_square];
-  Piece captured = Piece::None; // benötigen wir weil to_piece bei Castling und En Passant nicht funktioniert
-  
+  Square from_square = m.from_sq();
+  Square to_square = m.to_sq();
+  Piece from_piece = mailbox[+from_square];
+  assert(from_piece != Piece::None);
+  Piece captured = Piece::None; 
+  Square captured_square = Square::None;
+
+  assert(ply < history.size());
   history[ply] = game_state; 
   
   ++game_state.half_move_clock;  
@@ -135,7 +137,7 @@ void Board::do_move(Move m) noexcept {
   
   switch(m.type_of()){
     case MoveType::Normal:
-    captured = to_piece;
+    captured = mailbox[+to_square];
     if(captured != Piece::None) { // Schlag
       remove_piece(color_of(captured), piece_of(captured), to_square);
     }
@@ -170,14 +172,15 @@ void Board::do_move(Move m) noexcept {
       move_piece(Color::Black, PieceType::King, Square::e8, Square::c8);
       break;
       default:
-      break;
+      assert(false);
     }
     break;
     
     case MoveType::En_Passant:
-      captured = mailbox[+to_square ^ 8];
-      remove_piece(color_of(captured), piece_of(captured),
-                   static_cast<Square>(+captured));
+      captured_square = static_cast<Square>(+to_square ^ 8);
+      captured = mailbox[+captured_square];
+      assert(piece_of(captured) == PieceType::Pawn);
+      remove_piece(color_of(captured), piece_of(captured), captured_square);
       move_piece(color_of(from_piece), piece_of(from_piece), from_square,
                  to_square);
       break;
@@ -195,17 +198,68 @@ void Board::do_move(Move m) noexcept {
   if(piece_of(from_piece) == PieceType::Pawn || captured != Piece::None){ 
     game_state.half_move_clock = 0;
   }
-  game_state.captured_piece = captured; 
+  game_state.captured_piece = captured; // Das gecaptured Piece ist das NACH dem Move. Führe den undo erst aus und dann recover Gamestate!
   ++ply;
 };
 
-//eine Art Stack muss beigelegt werden oder? do_move müsste eine Art Stack füllen mit moves und das reichen wir undo weiter.
-//ich sehe nicht wie undo jemals etwas "zurück" bringen soll wenn er nicht weiß.. doch einfach das VOR do_move einfach reinlegen?
-//heißt das ich brauche literally einen std::stack<GameState>? Wo ich pro do_move reinlege und pro undo_move es rausnehme und wiederherstelle?
+void Board::undo_move(Move m) noexcept{
+  Square from_square = m.from_sq();
+  Square to_square = m.to_sq();
+  Piece return_piece = mailbox[+to_square];
+  Piece recover_piece{game_state.captured_piece};
 
-// void Board::undo_move(Move m) noexcept{
+  switch(m.type_of()){
+    case MoveType::Normal:
+    move_piece(color_of(return_piece), piece_of(return_piece), to_square, from_square);
+    if(recover_piece != Piece::None){
+      add_piece(color_of(recover_piece), piece_of(recover_piece), to_square);
+    }
+    break;
 
-// };
+    case MoveType::Castling:
+    switch (to_square) {
+      case Square::h1:
+      move_piece(Color::White, PieceType::Rook, Square::f1, Square::h1);
+      move_piece(Color::White, PieceType::King, Square::g1, Square::e1);
+      break;
+      
+      case Square::a1:
+      move_piece(Color::White, PieceType::Rook, Square::d1, Square::a1);
+      move_piece(Color::White, PieceType::King, Square::c1, Square::e1);
+      break;
+      
+      case Square::h8:
+      move_piece(Color::Black, PieceType::Rook, Square::f8, Square::h8);
+      move_piece(Color::Black, PieceType::King, Square::g8, Square::e8);
+      break;
+      
+      case Square::a8:
+      move_piece(Color::Black, PieceType::Rook, Square::d8, Square::a8);
+      move_piece(Color::Black, PieceType::King, Square::c8, Square::e8);
+      break;
+      default:
+      assert(false);
+    }
+    break;
+    case MoveType::En_Passant:
+      assert(piece_of(recover_piece) == PieceType::Pawn);
+      move_piece(color_of(return_piece), piece_of(return_piece), to_square,
+                 from_square);
+      add_piece(color_of(recover_piece), piece_of(recover_piece),
+                static_cast<Square>(+to_square ^ 8));
+      break;
+    case MoveType::Promotion:
+      add_piece(color_of(return_piece), PieceType::Pawn, from_square);
+      remove_piece(color_of(return_piece), piece_of(return_piece), to_square);
+      if (recover_piece != Piece::None) {
+        add_piece(color_of(recover_piece), piece_of(recover_piece), to_square);
+      }
+      break;
+  }
+  assert(ply > 0);
+  ply--;
+  game_state = history[ply];
+};
 
 Board::Board() {
   init_bitmaps();
