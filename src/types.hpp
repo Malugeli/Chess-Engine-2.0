@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <utility>
 #include <cassert>
+
 static constexpr uint8_t PieceTypeCount = 6;
 
 enum class Color : uint8_t {White = 0, Black = 1};

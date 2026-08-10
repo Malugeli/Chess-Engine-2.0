@@ -1,9 +1,26 @@
 #pragma once
 #include "types.hpp"
+#include "board.hpp"
 #include <array>
 
-// Leaper Pieces:
+struct MoveList{
+  std::array<Move, 256> moves{};
+  uint16_t counter{};
 
+  void add(Move m){
+    assert(counter < 256);
+    moves[counter++] = m; // erstmal Counter dann erhöhung.. Wusste ich nicht tbh =D
+  }
+
+  const Move* begin() const noexcept {return moves.data();}
+  const Move* end() const noexcept {return moves.data() + counter;}
+  int size() const noexcept {return counter;}
+  void clear() noexcept { counter = 0;}
+};
+
+void generate_moves(const Board& b, MoveList* list) noexcept;
+
+// Leaper Pieces:
 inline constexpr std::array<std::array<uint64_t, 64>, 2> kPawnAttack = []() {
   std::array<std::array<uint64_t, 64>, 2> attack{};
   std::array<int, 2> file_offset{-1, +1};

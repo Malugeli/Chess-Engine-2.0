@@ -1,4 +1,25 @@
 #include "movegen.hpp"
+#include <bit>
+
+void add_moves(Square from, uint64_t targets, MoveList& list){
+  while(targets){
+    Square to = static_cast<Square>(std::countr_zero(targets));
+    list.add(Move( from, to ));
+    targets &= targets - 1; // ich komm darauf immer noch nicht klar
+  }
+};
+
+void generate_knight_moves(const Board& b, Color turn_player, MoveList& list){
+  //Das habe ich am Ende des Tages verstanden. Versuch das zu verstehen und mach dann mal King!
+  uint64_t knights = b.get_bitmap(turn_player, PieceType::Knight);
+  uint64_t pieces_turn_player = b.get_color_board(turn_player);
+
+  while(knights){
+    Square from = static_cast<Square>(std::countr_zero(knights));
+    add_moves(from, kKnightAttack[+from] & ~pieces_turn_player, list);
+    knights &= knights - 1;
+  }
+}
 
 uint64_t rook_attacks(Square square, uint64_t occupied){
   uint64_t attacks = 0ULL;
