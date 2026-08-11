@@ -8,7 +8,7 @@ struct MoveList{
   uint16_t counter{};
 
   void add(Move m){
-    assert(counter < 256);
+    assert(counter < moves.size());
     moves[counter++] = m; // erstmal Counter dann erhöhung.. Wusste ich nicht tbh =D
   }
 
