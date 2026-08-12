@@ -1,6 +1,7 @@
 #pragma once
 #include "types.hpp"
 #include "board.hpp"
+#include "bitboard.hpp"
 #include <array>
 
 struct MoveList{

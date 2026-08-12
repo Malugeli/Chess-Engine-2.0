@@ -61,15 +61,15 @@ static void generate_queen_moves(const Board& b, const Color turn_player, MoveLi
   }
 }
 
-static void generate_pawn_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
+// static void generate_pawn_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
   
-}
+// }
 
 void generate_moves(const Board& b, MoveList& list) noexcept {
   list.clear();
   Color turn_player = b.get_gamestate().side_to_move;
 
-  generate_pawn_moves(b, turn_player, list);
+  // generate_pawn_moves(b, turn_player, list);
   generate_knight_moves(b, turn_player, list);
   generate_king_moves(b, turn_player, list);
   generate_rook_moves(b, turn_player, list);

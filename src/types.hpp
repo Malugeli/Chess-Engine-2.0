@@ -82,11 +82,6 @@ struct GameState{
   Piece captured_piece;
 };
 
-inline constexpr uint64_t square_bb(Square square) {
-  assert(square != Square::None);
-  return 1ULL << +square;
-};
-
 enum class MoveType : uint16_t {
   Normal = 0,
   Promotion = 1 << 14,

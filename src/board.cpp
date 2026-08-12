@@ -1,5 +1,6 @@
-#include "board.hpp"
 #include <bit>
+#include "board.hpp"
+#include "bitboard.hpp"
 
 void Board::init_bitmaps(){
   bitmaps[get_index(Color::White, PieceType::Pawn)] = 0xFF00ULL;
