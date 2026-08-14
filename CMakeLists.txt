@@ -37,3 +37,7 @@ endif()
 
 target_compile_features(ChessEngine PRIVATE cxx_std_23)
 target_link_libraries(ChessEngine PRIVATE benchmark::benchmark)
+
+# std::print/std::println liegen bei GCC 14/15 in libstdc++exp, nicht in libstdc++,
+# weil ihr ABI noch nicht stabil ist. Ohne das fehlen __open_terminal/__write_to_terminal.
+target_link_libraries(ChessEngine PRIVATE $<$<CXX_COMPILER_ID:GNU>:stdc++exp>)
