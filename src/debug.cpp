@@ -1,4 +1,5 @@
 #include "debug.hpp"
+#include "bitboard.hpp"
 
 std::string pretty_bitboard(uint64_t board){
   std::string s = "+---+---+---+---+---+---+---+---+\n";

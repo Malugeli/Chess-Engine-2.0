@@ -1,5 +1,5 @@
 #pragma once
-#include "types.hpp"
 #include <string>
+#include <cstdint>
 
 std::string pretty_bitboard(uint64_t board);

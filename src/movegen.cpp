@@ -1,6 +1,8 @@
 #include "movegen.hpp"
 #include <bit>
 
+
+
 static void add_moves(Square from, uint64_t targets, MoveList& list) noexcept {
   while(targets){
     Square to = static_cast<Square>(std::countr_zero(targets));
@@ -8,6 +10,33 @@ static void add_moves(Square from, uint64_t targets, MoveList& list) noexcept {
     targets &= targets - 1; 
   }
 }
+
+static void add_pawn_moves(uint64_t targets, int offset, MoveList& list) noexcept{
+  while(targets){
+    const int to = std::countr_zero(targets);
+    list.add(Move(static_cast<Square>(to - offset), static_cast<Square>(to)));
+    targets &= targets - 1;
+  }
+}
+
+static void add_pawn_promo_moves(uint64_t targets, int offset, MoveList& list) noexcept{
+  while(targets){
+    const int to = std::countr_zero(targets);
+    for(PieceType piece : {PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen}){
+      list.add(Move::make<MoveType::Promotion>(static_cast<Square>(to - offset), static_cast<Square>(to), piece));
+    }
+    targets &= targets - 1;
+  }
+}
+
+static void add_pawn_ep_moves(uint64_t pawns, Square ep, Color enemy, MoveList& list){
+      uint64_t ep_capture = kPawnAttack[+enemy][+ep] & pawns;
+      while (ep_capture) {
+        Square ep_attack = static_cast<Square>(std::countr_zero(ep_capture));
+        list.add(Move::make<MoveType::En_Passant>(ep_attack, ep));
+        ep_capture &= ep_capture - 1;
+      }
+    }
 
 static void generate_knight_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
   uint64_t knights = b.get_bitmap(turn_player, PieceType::Knight);
@@ -61,9 +90,58 @@ static void generate_queen_moves(const Board& b, const Color turn_player, MoveLi
   }
 }
 
-// static void generate_pawn_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
+static void generate_pawn_moves(const Board &b, const Color turn_player,
+                                MoveList &list) noexcept {
+  uint64_t pawns = b.get_bitmap(turn_player, PieceType::Pawn);
+  uint64_t occupied = b.occupied();
+  Square ep = b.get_gamestate().ep_square;
+  if(ep != Square::None){
+    add_pawn_ep_moves(pawns, ep, static_cast<Color>(!+turn_player), list);
+  }
   
-// }
+  switch (turn_player) {
+  case Color::White: {
+    uint64_t enemies = b.get_color_board(Color::Black);
+    uint64_t single_push = shift<white_single_push>(pawns) & ~occupied;
+    uint64_t promo = single_push & Rank8;
+    add_pawn_promo_moves(promo, white_single_push, list);
+    uint64_t quiet = single_push & ~Rank8;
+    add_pawn_moves(quiet, white_single_push, list);
+    uint64_t double_push = shift<white_single_push>(single_push & Rank3) & ~occupied;
+    add_pawn_moves(double_push, white_double_push, list);
+
+    uint64_t left_capture = shift<white_left_capture>(pawns & ~FileA) & enemies;
+    add_pawn_moves(left_capture & ~Rank8, white_left_capture, list);
+    add_pawn_promo_moves(left_capture & Rank8, white_left_capture, list);
+
+    uint64_t right_capture = shift<white_right_capture>(pawns & ~FileH) & enemies;
+    add_pawn_moves(right_capture & ~Rank8, white_right_capture, list);
+    add_pawn_promo_moves(right_capture & Rank8, white_right_capture, list);
+    break;
+  }
+
+  case Color::Black: {
+    uint64_t enemies = b.get_color_board(Color::White);
+    uint64_t single_push = shift<black_single_push>(pawns) & ~occupied;
+    uint64_t promo = single_push & Rank1;
+    add_pawn_promo_moves(promo, black_single_push, list);
+    uint64_t quiet = single_push & ~Rank1;
+    add_pawn_moves(quiet, black_single_push, list);
+    uint64_t double_push = shift<black_single_push>(single_push & Rank6) & ~occupied;
+    add_pawn_moves(double_push, black_double_push, list);
+
+    uint64_t left_capture = shift<black_left_capture>(pawns & ~FileA) & enemies;
+    add_pawn_moves(left_capture & ~Rank1, black_left_capture, list);
+    add_pawn_promo_moves(left_capture & Rank1, black_left_capture, list);
+
+    uint64_t right_capture = shift<black_right_capture>(pawns & ~FileH) & enemies;
+    add_pawn_moves(right_capture & ~Rank1, black_right_capture, list);
+    add_pawn_promo_moves(right_capture & Rank1, black_right_capture, list);
+    break;
+  }
+  }
+
+}
 
 void generate_moves(const Board& b, MoveList& list) noexcept {
   list.clear();
@@ -75,7 +153,7 @@ void generate_moves(const Board& b, MoveList& list) noexcept {
   generate_rook_moves(b, turn_player, list);
   generate_bishop_moves(b, turn_player, list);
   generate_queen_moves(b, turn_player, list);
-
+  generate_pawn_moves(b, turn_player, list);
 }
 
 uint64_t rook_attacks(Square square, uint64_t occupied){

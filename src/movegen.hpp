@@ -4,13 +4,35 @@
 #include "bitboard.hpp"
 #include <array>
 
+inline constexpr int white_left_capture{7};
+inline constexpr int white_right_capture{9};
+inline constexpr int white_single_push{8};
+inline constexpr int white_double_push{16};
+
+inline constexpr int black_left_capture{-9};
+inline constexpr int black_right_capture{-7};
+inline constexpr int black_single_push{-8};
+inline constexpr int black_double_push{-16};
+
+// Ein Shift mit negativem Operanden ist UB, deshalb entscheidet das Vorzeichen
+// des Offsets schon zur Compilezeit über die Richtung. So können Shift und
+// Offset nicht mehr auseinanderlaufen.
+template <int Offset>
+constexpr uint64_t shift(uint64_t bb) noexcept {
+  if constexpr (Offset >= 0) {
+    return bb << Offset;
+  } else {
+    return bb >> -Offset; //Dreht die negative wieder um
+  }
+}
+
 struct MoveList{
   std::array<Move, 256> moves{};
   uint16_t counter{};
 
   void add(Move m){
     assert(counter < moves.size());
-    moves[counter++] = m; // erstmal Counter dann erhöhung.. Wusste ich nicht tbh =D
+    moves[counter++] = m; 
   }
 
   const Move* begin() const noexcept {return moves.data();}
@@ -19,7 +41,7 @@ struct MoveList{
   void clear() noexcept { counter = 0;}
 };
 
-void generate_moves(const Board& b, MoveList* list) noexcept;
+void generate_moves(const Board& b, MoveList& list) noexcept;
 
 // Leaper Pieces:
 inline constexpr std::array<std::array<uint64_t, 64>, 2> kPawnAttack = []() {
