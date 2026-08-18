@@ -14,6 +14,9 @@ inline constexpr int black_right_capture{-7};
 inline constexpr int black_single_push{-8};
 inline constexpr int black_double_push{-16};
 
+inline constexpr uint8_t CASTLING_SHORT{0b01};
+inline constexpr uint8_t CASTLING_LONG{0b10};
+
 // Ein Shift mit negativem Operanden ist UB, deshalb entscheidet das Vorzeichen
 // des Offsets schon zur Compilezeit über die Richtung. So können Shift und
 // Offset nicht mehr auseinanderlaufen.

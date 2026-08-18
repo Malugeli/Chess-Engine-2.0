@@ -68,7 +68,7 @@ constexpr CastlingRight operator~(CastlingRight castling_rights) {
   return static_cast<CastlingRight>(~+castling_rights);
 }
 constexpr CastlingRight& operator&=(CastlingRight& left, CastlingRight right){
-  return left = left & right; 
+  return left = left & right;
 }
 
 // Der GameState (und damit auch eine FEN) speichert ausschließlich historische oder "unsichtbare" 

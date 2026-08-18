@@ -38,6 +38,30 @@ static void add_pawn_ep_moves(uint64_t pawns, Square ep, Color enemy, MoveList& 
       }
     }
 
+    bool is_square_attacked(const Board &b, Square target, Color by) {
+      const auto occupied = b.occupied();
+      const auto other = static_cast<Color>(!+by);
+
+      // L1 Zugriff - zusammen ist günstig, fasse es in einen Branch statt drei
+      if ((kKnightAttack[+target] & b.get_bitmap(by, PieceType::Knight)) |
+          (kKingAttack[+target] & b.get_bitmap(by, PieceType::King)) |
+          (kPawnAttack[+other][+target] & b.get_bitmap(by, PieceType::Pawn))) {
+        return true;
+      }
+
+      // Erst jetzt die teuren Zugriffe
+      const auto queens = b.get_bitmap(by, PieceType::Queen);
+      if (rook_attacks(target, occupied) &
+          (b.get_bitmap(by, PieceType::Rook) | queens)) {
+        return true;
+      }
+      if (bishop_attacks(target, occupied) &
+          (b.get_bitmap(by, PieceType::Bishop) | queens)) {
+        return true;
+      }
+      return false;
+    }
+
 static void generate_knight_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
   uint64_t knights = b.get_bitmap(turn_player, PieceType::Knight);
   const uint64_t pieces_turn_player = b.get_color_board(turn_player);
@@ -143,17 +167,71 @@ static void generate_pawn_moves(const Board &b, const Color turn_player,
 
 }
 
+// wir müssen checken ob:
+// A: Die Castling Rights bestehen
+// B: Die Felder frei sind(keine eigenen Figuren drauf stehen)
+// C: Das Feld nicht angegriffen wird.
+// Bei allen können wir checken ob is_attacked und & occupied() mäßig, einfach true idk
+// Außer bei Long wo wir noch bei b1/8 checken müssen ob es frei ist aber nicht ob attackiert.
+void generate_castling_moves(const Board &b, MoveList &list) {
+  const Color us = b.get_gamestate().side_to_move;
+  const Color enemy = static_cast<Color>(!+us);
+  const uint8_t rights = +b.get_gamestate().castling_rights >> (2 * +us);
+
+  if (!(rights & (CASTLING_SHORT | CASTLING_LONG))) {
+    return;
+  }
+
+  const int offset = 56 * +us;
+  uint64_t occupied = b.occupied();
+  Square king = static_cast<Square>(+Square::e1 + offset);
+
+  if (is_square_attacked(b, king, enemy)) {
+    return;
+  }
+
+  // Short
+  if (rights & CASTLING_SHORT) {
+    Square f_square = static_cast<Square>(+Square::f1 + offset);
+    Square g_square = static_cast<Square>(+Square::g1 + offset);
+
+    uint64_t squares_between = square_bb(f_square) | square_bb(g_square);
+    if (!(squares_between & occupied) &&
+        !is_square_attacked(b, f_square, enemy) &&
+        !is_square_attacked(b, g_square, enemy)) {
+      list.add(Move::make<MoveType::Castling>(
+          king, static_cast<Square>((+Square::h1) + offset)));
+    }
+  }
+
+  // Long
+  if (rights & CASTLING_LONG) {
+    Square c_square = static_cast<Square>(+Square::c1 + offset);
+    Square d_square = static_cast<Square>(+Square::d1 + offset);
+    uint64_t b_square = square_bb(static_cast<Square>(+Square::b1 + offset));
+    uint64_t square_between =
+        square_bb(d_square) | square_bb(c_square) | b_square;
+
+    if (!(square_between & occupied) &&
+        !is_square_attacked(b, c_square, enemy) &&
+        !is_square_attacked(b, d_square, enemy)) {
+      list.add(Move::make<MoveType::Castling>(
+          king, static_cast<Square>(+Square::a1 + offset)));
+    }
+  }
+}
+
 void generate_moves(const Board& b, MoveList& list) noexcept {
   list.clear();
   Color turn_player = b.get_gamestate().side_to_move;
-
-  // generate_pawn_moves(b, turn_player, list);
+  
+  generate_pawn_moves(b, turn_player, list);
   generate_knight_moves(b, turn_player, list);
   generate_king_moves(b, turn_player, list);
   generate_rook_moves(b, turn_player, list);
   generate_bishop_moves(b, turn_player, list);
   generate_queen_moves(b, turn_player, list);
-  generate_pawn_moves(b, turn_player, list);
+  generate_castling_moves(b, list);
 }
 
 uint64_t rook_attacks(Square square, uint64_t occupied){

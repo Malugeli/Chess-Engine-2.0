@@ -112,7 +112,7 @@ void Board::remove_piece(Color c, PieceType p, Square s) noexcept {
 }
 
 //bevor ich den Zug ausführe muss den Gamestate speichern um es später wieder rückgängig zu machen
-//statt einem std::stack nutze ich ein festes Array von (vorerst)
+//statt einem std::stack nutze ich ein festes Array (vorerst)
 void Board::do_move(Move m) noexcept {
   Square from_square = m.from_sq();
   Square to_square = m.to_sq();
