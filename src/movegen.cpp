@@ -167,12 +167,6 @@ static void generate_pawn_moves(const Board &b, const Color turn_player,
 
 }
 
-// wir müssen checken ob:
-// A: Die Castling Rights bestehen
-// B: Die Felder frei sind(keine eigenen Figuren drauf stehen)
-// C: Das Feld nicht angegriffen wird.
-// Bei allen können wir checken ob is_attacked und & occupied() mäßig, einfach true idk
-// Außer bei Long wo wir noch bei b1/8 checken müssen ob es frei ist aber nicht ob attackiert.
 void generate_castling_moves(const Board &b, MoveList &list) {
   const Color us = b.get_gamestate().side_to_move;
   const Color enemy = static_cast<Color>(!+us);
