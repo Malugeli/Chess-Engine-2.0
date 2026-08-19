@@ -45,6 +45,7 @@ struct MoveList{
 };
 
 void generate_moves(const Board& b, MoveList& list) noexcept;
+bool is_square_attacked(const Board &b, Square target, Color by);
 
 // Leaper Pieces:
 inline constexpr std::array<std::array<uint64_t, 64>, 2> kPawnAttack = []() {

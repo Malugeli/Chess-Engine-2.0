@@ -38,29 +38,29 @@ static void add_pawn_ep_moves(uint64_t pawns, Square ep, Color enemy, MoveList& 
       }
     }
 
-    bool is_square_attacked(const Board &b, Square target, Color by) {
-      const auto occupied = b.occupied();
-      const auto other = static_cast<Color>(!+by);
+bool is_square_attacked(const Board &b, Square target, Color by) {
+  const auto occupied = b.occupied();
+  const auto other = static_cast<Color>(!+by);
 
-      // L1 Zugriff - zusammen ist günstig, fasse es in einen Branch statt drei
-      if ((kKnightAttack[+target] & b.get_bitmap(by, PieceType::Knight)) |
-          (kKingAttack[+target] & b.get_bitmap(by, PieceType::King)) |
-          (kPawnAttack[+other][+target] & b.get_bitmap(by, PieceType::Pawn))) {
-        return true;
-      }
+  // L1 Zugriff - zusammen ist günstig, fasse es in einen Branch statt drei
+  if ((kKnightAttack[+target] & b.get_bitmap(by, PieceType::Knight)) |
+      (kKingAttack[+target] & b.get_bitmap(by, PieceType::King)) |
+      (kPawnAttack[+other][+target] & b.get_bitmap(by, PieceType::Pawn))) {
+    return true;
+  }
 
-      // Erst jetzt die teuren Zugriffe
-      const auto queens = b.get_bitmap(by, PieceType::Queen);
-      if (rook_attacks(target, occupied) &
-          (b.get_bitmap(by, PieceType::Rook) | queens)) {
-        return true;
-      }
-      if (bishop_attacks(target, occupied) &
-          (b.get_bitmap(by, PieceType::Bishop) | queens)) {
-        return true;
-      }
-      return false;
-    }
+  // Erst jetzt die teuren Zugriffe
+  const auto queens = b.get_bitmap(by, PieceType::Queen);
+  if (rook_attacks(target, occupied) &
+      (b.get_bitmap(by, PieceType::Rook) | queens)) {
+    return true;
+  }
+  if (bishop_attacks(target, occupied) &
+      (b.get_bitmap(by, PieceType::Bishop) | queens)) {
+    return true;
+  }
+  return false;
+}
 
 static void generate_knight_moves(const Board& b, const Color turn_player, MoveList& list) noexcept {
   uint64_t knights = b.get_bitmap(turn_player, PieceType::Knight);
@@ -167,7 +167,7 @@ static void generate_pawn_moves(const Board &b, const Color turn_player,
 
 }
 
-void generate_castling_moves(const Board &b, MoveList &list) {
+static void generate_castling_moves(const Board &b, MoveList &list) {
   const Color us = b.get_gamestate().side_to_move;
   const Color enemy = static_cast<Color>(!+us);
   const uint8_t rights = +b.get_gamestate().castling_rights >> (2 * +us);

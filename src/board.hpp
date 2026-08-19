@@ -1,7 +1,9 @@
 #pragma once
 #include <array>
+#include <string>
+#include <string_view>
+// #include <sstream>
 #include "types.hpp"
-
 class Board {
 private:
   //Membervariablen:
@@ -23,8 +25,8 @@ private:
   void remove_piece(Color color, PieceType piece, Square square) noexcept;
   void init_bitmaps();
   void init_castling_bitmask(); 
-
-public:
+  
+  public:
   Board();
   void do_move(Move m) noexcept;
   void undo_move(Move m) noexcept;
@@ -33,4 +35,7 @@ public:
   const GameState& get_gamestate() const noexcept;
   Piece get_piece_at(Square square) const noexcept;
   uint64_t occupied() const noexcept;
+  
+  void set_fen(std::string_view fen);
+  std::string to_fen();
 };

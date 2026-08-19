@@ -201,7 +201,7 @@ void Board::do_move(Move m) noexcept {
   }
   game_state.captured_piece = captured; // Das gecaptured Piece ist das NACH dem Move. Führe den undo erst aus und dann recover Gamestate!
   ++ply;
-};
+}
 
 void Board::undo_move(Move m) noexcept{
   Square from_square = m.from_sq();
@@ -260,7 +260,18 @@ void Board::undo_move(Move m) noexcept{
   assert(ply > 0);
   ply--;
   game_state = history[ply];
-};
+}
+
+void Board::set_fen(std::string_view fen){
+  //Schritt 0, leere das Board
+  bitmaps.fill(0);
+  mailbox.fill(Piece::None);
+  color_board.fill(0);
+  ply = 0;
+
+  //Schrit 1, FEN zerlegen
+  fen = "King Maher";
+}
 
 Board::Board() {
   init_bitmaps();
