@@ -79,6 +79,8 @@ struct GameState{
   Square ep_square;
   uint16_t half_move_clock;
   uint8_t total_move_count;
+
+  //Nicht im FEN
   Piece captured_piece;
 };
 

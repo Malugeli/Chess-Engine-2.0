@@ -1,4 +1,7 @@
 #include <bit>
+#include <sstream>
+#include <cctype>
+
 #include "board.hpp"
 #include "bitboard.hpp"
 
@@ -262,15 +265,93 @@ void Board::undo_move(Move m) noexcept{
   game_state = history[ply];
 }
 
-void Board::set_fen(std::string_view fen){
-  //Schritt 0, leere das Board
+std::expected<void, FenError> Board::set_fen(std::string_view fen){
+  //Schritt 0, validiere den FEN
+  std::istringstream ss{std::string(fen)};
+  std::string board, turn_player, castling, ep_sq;
+  ss >> board >> turn_player >> castling >> ep_sq;
+  int hm_clock = 0;
+  int total_move_count = 1;
+
+  if (!(ss >> hm_clock)){ //für EDP
+    hm_clock = 0;
+  }
+  if(!(ss >>total_move_count)){
+    total_move_count = 1;
+  }
+
+  for(size_t i = 0; i < board.size(); ++i){
+    if(board[i])
+  }
+  
+  //Schritt 0, leere das Board 
   bitmaps.fill(0);
   mailbox.fill(Piece::None);
   color_board.fill(0);
   ply = 0;
+  game_state.captured_piece = Piece::None;
 
   //Schrit 1, FEN zerlegen
-  fen = "King Maher";
+  // std::istringstream ss{std::string(fen)};
+  // std::string board, turn_player, castling, ep_sq;
+  // ss >> board >> turn_player >> castling >> ep_sq;
+  // int hm_clock = 0;
+  // int total_move_count = 1;
+
+  if (!(ss >> hm_clock)){ //für EDP
+    hm_clock = 0;
+  }
+  if(!(ss >>total_move_count)){
+    total_move_count = 1;
+  }
+  
+  //Schritt 2, Board erstellen
+  int rank = 7;
+  int file = 0;
+
+  for(auto c : board){
+    if(std::isdigit(c)){
+      file += c - '0';
+    }
+    else if(c == '/'){
+      --rank;
+      file = 0;
+    }
+    else{
+      Square square = static_cast<Square>( rank *8 + file );
+
+       switch (c) {
+                case 'P': add_piece(Color::White, PieceType::Pawn, square); break;
+                case 'N': add_piece(Color::White, PieceType::Knight, square); break;
+                case 'B': add_piece(Color::White, PieceType::Bishop, square); break;
+                case 'R': add_piece(Color::White, PieceType::Rook, square); break;
+                case 'Q': add_piece(Color::White, PieceType::Queen, square); break;
+                case 'K': add_piece(Color::White, PieceType::King, square); break;
+
+                case 'p': add_piece(Color::Black, PieceType::Pawn, square); break;
+                case 'n': add_piece(Color::Black, PieceType::Knight, square); break;
+                case 'b': add_piece(Color::Black, PieceType::Bishop, square); break;
+                case 'r': add_piece(Color::Black, PieceType::Rook, square); break;
+                case 'q': add_piece(Color::Black, PieceType::Queen, square); break;
+                case 'k': add_piece(Color::Black, PieceType::King, square); break;
+
+                default:
+                    break;; 
+            } 
+      ++file;
+    }
+  }
+ 
+  //Schritt 3, Gamestate aktualisieren
+  if(turn_player == "w"){
+  game_state.side_to_move = Color::White;
+  }
+  else if(turn_player == "b"){
+  game_state.side_to_move = Color::Black;
+  }
+  else{
+    return false;
+  }
 }
 
 Board::Board() {

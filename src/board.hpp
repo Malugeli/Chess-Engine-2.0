@@ -1,9 +1,29 @@
 #pragma once
 #include <array>
+#include <expected>
 #include <string>
 #include <string_view>
-// #include <sstream>
+
 #include "types.hpp"
+
+enum class FenErrorCode {
+  WrongFieldCount,
+  InvalidPiece,
+  InvalidRankCount,
+  InvalidRankWidth,
+  InvalidActiveColor,
+  InvalidCastlingRights,
+  InvalidEnPassantSquare,
+  InvalidHalfmoveClock,
+  InvalidFullmoveNumber
+};
+
+struct FenError{
+  FenErrorCode code;
+  size_t position;
+  char found;
+};
+
 class Board {
 private:
   //Membervariablen:
@@ -36,6 +56,6 @@ private:
   Piece get_piece_at(Square square) const noexcept;
   uint64_t occupied() const noexcept;
   
-  void set_fen(std::string_view fen);
+  std::expected<void, FenError> set_fen(std::string_view fen);
   std::string to_fen();
 };
