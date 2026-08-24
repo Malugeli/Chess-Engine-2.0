@@ -514,7 +514,7 @@ std::string Board::to_fen() const{
         continue;
       }
 
-      if(p != Piece::None && empty){
+      if(empty){
         fen += std::to_string(empty);
         empty = 0;
       }
