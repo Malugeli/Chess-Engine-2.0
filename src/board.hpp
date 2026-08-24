@@ -57,5 +57,5 @@ private:
   uint64_t occupied() const noexcept;
   
   std::expected<void, FenError> set_fen(std::string_view fen);
-  std::string to_fen();
+  std::string to_fen() const;
 };

@@ -1,6 +1,5 @@
 #include <bit>
-#include <sstream>
-#include <cctype>
+#include <charconv>
 
 #include "board.hpp"
 #include "bitboard.hpp"
@@ -265,93 +264,301 @@ void Board::undo_move(Move m) noexcept{
   game_state = history[ply];
 }
 
-std::expected<void, FenError> Board::set_fen(std::string_view fen){
-  //Schritt 0, validiere den FEN
-  std::istringstream ss{std::string(fen)};
-  std::string board, turn_player, castling, ep_sq;
-  ss >> board >> turn_player >> castling >> ep_sq;
-  int hm_clock = 0;
-  int total_move_count = 1;
+std::expected<void, FenError> Board::set_fen(std::string_view fen) {
+  // Hilfsfunktion: baut einen Fehler mit Position im Original-String
+  auto fail = [](FenErrorCode code, size_t pos, char found) {
+    return std::unexpected(FenError{code, pos, found});
+  };
 
-  if (!(ss >> hm_clock)){ //für EDP
-    hm_clock = 0;
+  // ------------------------------------------------------------------
+  // Schritt 1: FEN in Felder zerlegen.
+  // Kein istringstream, weil ich die Position im Original-String brauche,
+  // um sie in den FenError zu schreiben.
+  // ------------------------------------------------------------------
+  struct Field {
+    std::string_view text{};
+    size_t offset{};
+  };
+  std::array<Field, 6> fields{};
+  size_t field_count = 0;
+
+  for (size_t i = 0; i < fen.size() && field_count < fields.size();) {
+    while (i < fen.size() && fen[i] == ' ') ++i;// Im Grunde ignorieren wir die anfangs Leerzeichen
+    if (i >= fen.size()) break; // Idk warum wir das so machen eine Line vorher checken wir noch i < fen.size()
+    const size_t start = i; //hier wissen wo es wirklcih anfängt
+    while (i < fen.size() && fen[i] != ' ') ++i; //Hier checken wie lange es ist
+    fields[field_count++] = Field{fen.substr(start, i - start), start}; //Offset?
   }
-  if(!(ss >>total_move_count)){
-    total_move_count = 1;
+
+  // Die ersten vier Felder sind Pflicht, die Clocks sind optional (EPD).
+  if (field_count < 4) {
+    return fail(FenErrorCode::WrongFieldCount, fen.size(), '\0');
   }
 
-  for(size_t i = 0; i < board.size(); ++i){
-    if(board[i])
-  }
-  
-  //Schritt 0, leere das Board 
-  bitmaps.fill(0);
-  mailbox.fill(Piece::None);
-  color_board.fill(0);
-  ply = 0;
-  game_state.captured_piece = Piece::None;
+  // ------------------------------------------------------------------
+  // Schritt 2: In LOKALE Variablen parsen. this bleibt bis Schritt 8 unberuehrt,
+  // damit ein kaputter FEN kein halb befuelltes Board hinterlaesst.
+  // ------------------------------------------------------------------
+  std::array<Piece, 64> new_mailbox{};
+  new_mailbox.fill(Piece::None);
 
-  //Schrit 1, FEN zerlegen
-  // std::istringstream ss{std::string(fen)};
-  // std::string board, turn_player, castling, ep_sq;
-  // ss >> board >> turn_player >> castling >> ep_sq;
-  // int hm_clock = 0;
-  // int total_move_count = 1;
+  GameState new_state{};
+  new_state.side_to_move = Color::White;
+  new_state.castling_rights = static_cast<CastlingRight>(0);
+  new_state.ep_square = Square::None;
+  new_state.half_move_clock = 0;
+  new_state.total_move_count = 1;
+  new_state.captured_piece = Piece::None;
 
-  if (!(ss >> hm_clock)){ //für EDP
-    hm_clock = 0;
-  }
-  if(!(ss >>total_move_count)){
-    total_move_count = 1;
-  }
-  
-  //Schritt 2, Board erstellen
-  int rank = 7;
-  int file = 0;
+  // ------------------------------------------------------------------
+  // Schritt 3: Figurenfeld. Eine Schleife, die gleichzeitig prueft und baut.
+  // rank laeuft von 7 (Rang 8) runter nach 0, file von 0 (a) nach 7 (h).
+  // ------------------------------------------------------------------
+  {
+    const Field& f = fields[0];
+    int rank = 7;
+    int file = 0;
 
-  for(auto c : board){
-    if(std::isdigit(c)){
-      file += c - '0';
-    }
-    else if(c == '/'){
-      --rank;
-      file = 0;
-    }
-    else{
-      Square square = static_cast<Square>( rank *8 + file );
+    for (size_t i = 0; i < f.text.size(); ++i) {
+      const char ch = f.text[i];
+      const size_t pos = f.offset + i;
 
-       switch (c) {
-                case 'P': add_piece(Color::White, PieceType::Pawn, square); break;
-                case 'N': add_piece(Color::White, PieceType::Knight, square); break;
-                case 'B': add_piece(Color::White, PieceType::Bishop, square); break;
-                case 'R': add_piece(Color::White, PieceType::Rook, square); break;
-                case 'Q': add_piece(Color::White, PieceType::Queen, square); break;
-                case 'K': add_piece(Color::White, PieceType::King, square); break;
+      if (ch == '/') {
+        if (file != 8) return fail(FenErrorCode::InvalidRankWidth, pos, ch);
+        if (rank == 0) return fail(FenErrorCode::InvalidRankCount, pos, ch);
+        --rank;
+        file = 0;
+        continue;
+      }
 
-                case 'p': add_piece(Color::Black, PieceType::Pawn, square); break;
-                case 'n': add_piece(Color::Black, PieceType::Knight, square); break;
-                case 'b': add_piece(Color::Black, PieceType::Bishop, square); break;
-                case 'r': add_piece(Color::Black, PieceType::Rook, square); break;
-                case 'q': add_piece(Color::Black, PieceType::Queen, square); break;
-                case 'k': add_piece(Color::Black, PieceType::King, square); break;
+      if (ch >= '1' && ch <= '8') {
+        file += ch - '0';
+        if (file > 8) return fail(FenErrorCode::InvalidRankWidth, pos, ch);
+        continue;
+      }
 
-                default:
-                    break;; 
-            } 
+      // Ab hier muss es eine Figur sein.
+      PieceType pt = PieceType::None;
+      switch (ch) {
+        case 'P': case 'p': pt = PieceType::Pawn;   break;
+        case 'N': case 'n': pt = PieceType::Knight; break;
+        case 'B': case 'b': pt = PieceType::Bishop; break;
+        case 'R': case 'r': pt = PieceType::Rook;   break;
+        case 'Q': case 'q': pt = PieceType::Queen;  break;
+        case 'K': case 'k': pt = PieceType::King;   break;
+        default: return fail(FenErrorCode::InvalidPiece, pos, ch);
+      }
+
+      if (file > 7) return fail(FenErrorCode::InvalidRankWidth, pos, ch);
+
+      const Color c = (ch >= 'A' && ch <= 'Z') ? Color::White : Color::Black;
+      new_mailbox[static_cast<size_t>(rank * 8 + file)] = make_piece(c, pt);
       ++file;
     }
+    //Ab hier muss File 8 und Rank 0 sein. Wenn nicht ist etwas schief gelaufen:
+    if (file != 8) {
+      return fail(FenErrorCode::InvalidRankWidth, f.offset + f.text.size(), '\0');
+    }
+    if (rank != 0) {
+      return fail(FenErrorCode::InvalidRankCount, f.offset + f.text.size(), '\0');
+    }
   }
- 
-  //Schritt 3, Gamestate aktualisieren
-  if(turn_player == "w"){
-  game_state.side_to_move = Color::White;
+
+  // ------------------------------------------------------------------
+  // Schritt 4: Side to move
+  // ------------------------------------------------------------------
+  {
+    const Field& f = fields[1];
+    if (f.text == "w") {
+      new_state.side_to_move = Color::White;
+    } else if (f.text == "b") {
+      new_state.side_to_move = Color::Black;
+    } else {
+      return fail(FenErrorCode::InvalidActiveColor, f.offset,
+                  f.text.empty() ? '\0' : f.text[0]);
+    }
   }
-  else if(turn_player == "b"){
-  game_state.side_to_move = Color::Black;
+
+  // ------------------------------------------------------------------
+  // Schritt 5: Rochaderechte. Entweder "-" oder eine Teilmenge von KQkq,
+  // jedes Zeichen hoechstens einmal.
+  // ------------------------------------------------------------------
+  {
+    const Field& f = fields[2];
+    if (f.text.empty()) {
+      return fail(FenErrorCode::InvalidCastlingRights, f.offset, '\0');
+    }
+    if (f.text != "-") {
+      CastlingRight rights = static_cast<CastlingRight>(0);
+      for (size_t i = 0; i < f.text.size(); ++i) {
+        const char ch = f.text[i];
+        const size_t pos = f.offset + i;
+
+        CastlingRight bit;
+        switch (ch) {
+          case 'K': bit = CastlingRight::White_Short; break;
+          case 'Q': bit = CastlingRight::White_Long;  break;
+          case 'k': bit = CastlingRight::Black_Short; break;
+          case 'q': bit = CastlingRight::Black_Long;  break;
+          default: return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+        }
+        // Doppeltes Zeichen, z. B. "KKkq" -- Den Check muss ich mir merken der ist crazy gut
+        if (+(rights & bit) != 0) {
+          return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+        }
+        rights = rights | bit;
+      }
+      new_state.castling_rights = rights;
+    }
   }
-  else{
-    return false;
+
+  // ------------------------------------------------------------------
+  // Schritt 6: En-Passant-Feld. Entweder "-" oder zwei Zeichen a-h + 3 oder 6.
+  // Der Rang muss zur Seite am Zug passen: Weiss am Zug => Schwarz hat gerade
+  // doppelt gezogen => EP-Feld liegt auf Rang 6.
+  // ------------------------------------------------------------------
+  {
+    const Field& f = fields[3];
+    if (f.text.empty()) {
+      return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, '\0');
+    }
+    if (f.text != "-") {
+      if (f.text.size() != 2) {
+        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, f.text[0]);
+      }
+      const char file_ch = f.text[0];
+      const char rank_ch = f.text[1];
+
+      if (file_ch < 'a' || file_ch > 'h') {
+        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, file_ch);
+      }
+      const char expected_rank = // das auch holy shit ist das schön
+          (new_state.side_to_move == Color::White) ? '6' : '3';
+      if (rank_ch != expected_rank) {
+        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset + 1, rank_ch);
+      }
+
+      const int file = file_ch - 'a';
+      const int rank = rank_ch - '1';
+      new_state.ep_square = static_cast<Square>(rank * 8 + file);
+    }
   }
+
+  // ------------------------------------------------------------------
+  // Schritt 7: Halbzug- und Zugzaehler. Beide optional (EPD hat sie nicht).
+  // ------------------------------------------------------------------
+  if (field_count > 4) {
+    const Field& f = fields[4];
+    unsigned value = 0;
+    const char* first = f.text.data();
+    const char* last = first + f.text.size();
+    const auto res = std::from_chars(first, last, value);
+    if (res.ec != std::errc{} || res.ptr != last) {
+      return fail(FenErrorCode::InvalidHalfmoveClock, f.offset,
+                  f.text[0]);
+    }
+    if (value > 0xFFFFu) {  // passt sonst nicht in uint16_t
+      return fail(FenErrorCode::InvalidHalfmoveClock, f.offset, f.text[0]);
+    }
+    new_state.half_move_clock = static_cast<uint16_t>(value);
+  }
+
+  if (field_count > 5) {
+    const Field& f = fields[5];
+    unsigned value = 0;
+    const char* first = f.text.data();
+    const char* last = first + f.text.size();
+    const auto res = std::from_chars(first, last, value);
+    if (res.ec != std::errc{} || res.ptr != last || value == 0) {
+      return fail(FenErrorCode::InvalidFullmoveNumber, f.offset,
+                  f.text[0]);
+    }
+    new_state.total_move_count = static_cast<uint16_t>( value );
+  }
+
+  // ------------------------------------------------------------------
+  // Schritt 8: Erst jetzt das echte Objekt anfassen. Ab hier kann nichts
+  // mehr schiefgehen, also gibt es auch kein halb befuelltes Board mehr.
+  // ------------------------------------------------------------------
+  bitmaps.fill(0ULL);
+  color_board.fill(0ULL);
+  mailbox = new_mailbox;
+
+  for (size_t sq = 0; sq < mailbox.size(); ++sq) {
+    const Piece piece = mailbox[sq];
+    if (piece == Piece::None) continue;
+
+    const uint64_t mask = square_bb(static_cast<Square>(sq));
+    bitmaps[get_index(color_of(piece), piece_of(piece))] |= mask;
+    color_board[+color_of(piece)] |= mask;
+  }
+
+  game_state = new_state;
+  ply = 0;
+
+  return {};
+}
+
+std::string Board::to_fen() const{
+  std::string fen{};
+  for(int rank = 7; rank >= 0; --rank){
+    int empty{};
+    for(int file = 0; file < 8; ++file){
+      size_t square = static_cast<size_t>(rank * 8 + file);
+      Piece p = mailbox[square];
+      if(p != Piece::None && empty){
+        fen += std::to_string(empty);
+        empty = 0;
+      }
+      switch (p) {
+      case (Piece::WhitePawn):
+        fen += "P";
+        break;
+      case (Piece::WhiteKnight):
+        fen += "N";
+        break;
+      case (Piece::WhiteBishop):
+        fen += "B";
+        break;
+      case (Piece::WhiteRook):
+        fen += "R";
+        break;
+      case (Piece::WhiteQueen):
+        fen += "Q";
+        break;
+      case (Piece::WhiteKing):
+        fen += "K";
+        break;
+      case (Piece::BlackPawn):
+        fen += "p";
+        break;
+      case (Piece::BlackKnight):
+        fen += "n";
+        break;
+      case (Piece::BlackBishop):
+        fen += "b";
+        break;
+      case (Piece::BlackRook):
+        fen += "r";
+        break;
+      case (Piece::BlackQueen):
+        fen += "q";
+        break;
+      case (Piece::BlackKing):
+        fen += "k";
+        break;
+
+      default:
+        ++empty;
+      }
+    }
+    if(empty){
+      fen += std::to_string(empty);
+    } 
+    if(rank != 0){
+    fen += "/";}
+  }
+  return fen;
 }
 
 Board::Board() {
