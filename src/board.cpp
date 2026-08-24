@@ -500,6 +500,8 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
 }
 
 std::string Board::to_fen() const{
+  constexpr std::array<char, 14> piece_chars{
+      'P', 'N', 'B', 'R', 'Q', 'K', '\0', '\0', 'p', 'n', 'b', 'r', 'q', 'k'};
   std::string fen{};
   for(int rank = 7; rank >= 0; --rank){
     int empty{};
@@ -510,53 +512,14 @@ std::string Board::to_fen() const{
         fen += std::to_string(empty);
         empty = 0;
       }
-      switch (p) {
-      case (Piece::WhitePawn):
-        fen += "P";
-        break;
-      case (Piece::WhiteKnight):
-        fen += "N";
-        break;
-      case (Piece::WhiteBishop):
-        fen += "B";
-        break;
-      case (Piece::WhiteRook):
-        fen += "R";
-        break;
-      case (Piece::WhiteQueen):
-        fen += "Q";
-        break;
-      case (Piece::WhiteKing):
-        fen += "K";
-        break;
-      case (Piece::BlackPawn):
-        fen += "p";
-        break;
-      case (Piece::BlackKnight):
-        fen += "n";
-        break;
-      case (Piece::BlackBishop):
-        fen += "b";
-        break;
-      case (Piece::BlackRook):
-        fen += "r";
-        break;
-      case (Piece::BlackQueen):
-        fen += "q";
-        break;
-      case (Piece::BlackKing):
-        fen += "k";
-        break;
-
-      default:
-        ++empty;
-      }
+      fen += piece_chars[+p];
     }
     if(empty){
       fen += std::to_string(empty);
     } 
     if(rank != 0){
-    fen += "/";}
+      fen += "/";
+    }
   }
   return fen;
 }
