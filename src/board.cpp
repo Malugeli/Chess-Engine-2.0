@@ -508,18 +508,29 @@ std::string Board::to_fen() const{
     for(int file = 0; file < 8; ++file){
       size_t square = static_cast<size_t>(rank * 8 + file);
       Piece p = mailbox[square];
+
+      if(p == Piece::None){
+        ++empty;
+        continue;
+      }
+
       if(p != Piece::None && empty){
         fen += std::to_string(empty);
         empty = 0;
       }
+
       fen += piece_chars[+p];
+
     }
+
     if(empty){
       fen += std::to_string(empty);
     } 
+
     if(rank != 0){
       fen += "/";
     }
+
   }
   return fen;
 }
