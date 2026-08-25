@@ -500,38 +500,90 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
 }
 
 std::string Board::to_fen() const{
+  //Schritt 1: Board
   constexpr std::array<char, 14> piece_chars{
       'P', 'N', 'B', 'R', 'Q', 'K', '\0', '\0', 'p', 'n', 'b', 'r', 'q', 'k'};
   std::string fen{};
-  for(int rank = 7; rank >= 0; --rank){
+  for (int rank = 7; rank >= 0; --rank) {
     int empty{};
-    for(int file = 0; file < 8; ++file){
+    for (int file = 0; file < 8; ++file) {
       size_t square = static_cast<size_t>(rank * 8 + file);
       Piece p = mailbox[square];
 
-      if(p == Piece::None){
+      if (p == Piece::None) {
         ++empty;
         continue;
       }
 
-      if(empty){
+      if (empty) {
         fen += std::to_string(empty);
         empty = 0;
       }
 
       fen += piece_chars[+p];
-
     }
 
-    if(empty){
+    if (empty) {
       fen += std::to_string(empty);
-    } 
+    }
 
-    if(rank != 0){
+    if (rank != 0) {
       fen += "/";
     }
-
   }
+
+  fen += ' ';
+
+  //Schritt 2: Side to Move
+  fen += game_state.side_to_move == Color::White ? 'w' : 'b';
+
+  fen += ' ';
+  
+  //Schritt 3: CastlingRights...
+  CastlingRight rights = game_state.castling_rights;
+  if (+rights == 0) {
+    fen += '-';
+  }
+  else{
+    if (+rights & +CastlingRight::White_Short) {
+      fen += "K";
+    }
+    if (+rights & +CastlingRight::White_Long) {
+      fen += "Q";
+    }
+    if (+rights & +CastlingRight::Black_Short) {
+      fen += "k";
+    }
+    if (+rights & +CastlingRight::Black_Long) {
+      fen += "q";
+    }
+}
+
+  fen += ' ';
+
+  //Schritt 4: EnPassant
+  Square ep = game_state.ep_square;
+  if(ep != Square::None){
+    //Erst File dann Rank
+    fen += static_cast<char>( 'a' + ( +ep % 8 ) );
+    fen += static_cast<char>('1' + (+ep / 8));
+  }
+  else{
+    fen += '-';
+  }
+
+
+  fen += ' ';
+
+  //Schritt 5: Half_Move_Count
+  fen += std::to_string(game_state.half_move_clock);
+
+  fen += ' ';
+
+  //Schritt 6: Total_Move_Count
+  fen += std::to_string(game_state.total_move_count);
+
+  //Schritt 7: Return
   return fen;
 }
 

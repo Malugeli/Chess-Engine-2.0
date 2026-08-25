@@ -170,7 +170,8 @@ static void generate_pawn_moves(const Board &b, const Color turn_player,
 static void generate_castling_moves(const Board &b, MoveList &list) {
   const Color us = b.get_gamestate().side_to_move;
   const Color enemy = static_cast<Color>(!+us);
-  const uint8_t rights = +b.get_gamestate().castling_rights >> (2 * +us);
+  const uint8_t rights =
+      static_cast<uint8_t>(+b.get_gamestate().castling_rights >> (2 * +us));
 
   if (!(rights & (CASTLING_SHORT | CASTLING_LONG))) {
     return;
