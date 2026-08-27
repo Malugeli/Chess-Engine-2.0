@@ -1,5 +1,7 @@
 #include <bit>
 #include <charconv>
+#include <ranges>
+#include <algorithm>
 
 #include "board.hpp"
 #include "bitboard.hpp"
@@ -412,8 +414,36 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
   // ------------------------------------------------------------------
   // Schritt 5: Rochaderechte. Entweder "-" oder eine Teilmenge von KQkq,
   // jedes Zeichen hoechstens einmal.
+  //
+  // Zusaetzlich: ein Recht darf nur gesetzt sein, wenn Koenig und der
+  // zugehoerige Turm auch wirklich auf ihren Ausgangsfeldern stehen.
+  // Sonst wuerde do_move() beim Rochieren einen Turm von einem leeren
+  // Feld bewegen.
+  //
+  // Tabelle statt switch: die vier Faelle unterscheiden sich nur in Daten,
+  // nicht in Logik. Damit steht die Pruefung genau einmal im Code und die
+  // Klasse "Copy-Paste-Fehler in einem der vier Zweige" existiert nicht mehr.
   // ------------------------------------------------------------------
   {
+    struct CastlingSpec {
+      char token;
+      CastlingRight bit;
+      Square king_square;
+      Square rook_square;
+      Piece king;
+      Piece rook;
+    };
+    static constexpr std::array<CastlingSpec, 4> castling_specs{{
+        {'K', CastlingRight::White_Short, Square::e1, Square::h1,
+         Piece::WhiteKing, Piece::WhiteRook},
+        {'Q', CastlingRight::White_Long, Square::e1, Square::a1,
+         Piece::WhiteKing, Piece::WhiteRook},
+        {'k', CastlingRight::Black_Short, Square::e8, Square::h8,
+         Piece::BlackKing, Piece::BlackRook},
+        {'q', CastlingRight::Black_Long, Square::e8, Square::a8,
+         Piece::BlackKing, Piece::BlackRook},
+    }};
+
     const Field& f = fields[2];
     if (f.text.empty()) {
       return fail(FenErrorCode::InvalidCastlingRights, f.offset, '\0');
@@ -424,44 +454,22 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
         const char ch = f.text[i];
         const size_t pos = f.offset + i;
 
-        CastlingRight bit;
-        switch (ch) {
-        case 'K':
-          if (new_mailbox[+Square::e1] != Piece::WhiteKing ||
-              new_mailbox[+Square::h1] != Piece::WhiteRook) {
-            return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
-          }
-          bit = CastlingRight::White_Short; break;
-
-          case 'Q':
-            if (new_mailbox[+Square::e1] != Piece::WhiteKing ||
-                new_mailbox[+Square::a1] != Piece::WhiteRook) {
-              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
-            }
-          bit = CastlingRight::White_Long;  break;
-
-          case 'k':
-            if (new_mailbox[+Square::e8] != Piece::BlackKing ||
-                new_mailbox[+Square::a8] != Piece::BlackRook) {
-              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
-            }
-            bit = CastlingRight::Black_Short;
-            break;
-
-          case 'q':
-            if (new_mailbox[+Square::e8] != Piece::BlackKing ||
-                new_mailbox[+Square::a8] != Piece::BlackRook) {
-              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
-            }
-            bit = CastlingRight::Black_Long;
-            break;
-          default: return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
-        }
-        // Doppeltes Zeichen, z. B. "KKkq" -- Den Check muss ich mir merken der ist crazy gut
-        if (+(rights & bit) != 0) {
+        const auto it = std::ranges::find(castling_specs, ch, &CastlingSpec::token);
+        if (it == castling_specs.end()) {
           return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
         }
-        rights = rights | bit;
+
+        // Doppeltes Zeichen, z. B. "KKkq"
+        if (+(rights & it->bit) != 0) {
+          return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+        }
+        // Recht ohne die passenden Figuren
+        if (new_mailbox[+it->king_square] != it->king ||
+            new_mailbox[+it->rook_square] != it->rook) {
+          return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+        }
+
+        rights = rights | it->bit;
       }
       new_state.castling_rights = rights;
     }
@@ -471,7 +479,26 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
   // Schritt 6: En-Passant-Feld. Entweder "-" oder zwei Zeichen a-h + 3 oder 6.
   // Der Rang muss zur Seite am Zug passen: Weiss am Zug => Schwarz hat gerade
   // doppelt gezogen => EP-Feld liegt auf Rang 6.
+  //
+  // Drei Felder haengen an einem EP-Feld, und alle drei sind reine
+  // XOR-Rechnungen auf dem Feldindex:
+  //
+  //   ep       -- muss leer sein (der Bauer ist ja drueber gesprungen)
+  //   ep ^  8  -- Feld des Bauern, der gerade doppelt gezogen hat
+  //   ep ^ 24  -- Startfeld dieses Bauern, muss ebenfalls leer sein
+  //
+  // Warum das fuer BEIDE Seiten mit denselben Konstanten geht: das EP-Feld
+  // liegt garantiert auf Rang-Index 2 oder 5 (oben geprueft).
+  //   Rang 2 (0b010) <-> Bauer auf Rang 3 (0b011): Unterschied 0b001 -> << 3 ==  8
+  //   Rang 5 (0b101) <-> Bauer auf Rang 4 (0b100): Unterschied 0b001 -> << 3 ==  8
+  //   Rang 2 (0b010) <-> Start  auf Rang 1 (0b001): Unterschied 0b011 -> << 3 == 24
+  //   Rang 5 (0b101) <-> Start  auf Rang 6 (0b110): Unterschied 0b011 -> << 3 == 24
+  // Die Linie (untere 3 Bits) bleibt bei beiden XORs unberuehrt.
   // ------------------------------------------------------------------
+  static_assert((+Square::e6 ^ 8) == +Square::e5);
+  static_assert((+Square::e6 ^ 24) == +Square::e7);
+  static_assert((+Square::e3 ^ 8) == +Square::e4);
+  static_assert((+Square::e3 ^ 24) == +Square::e2);
   {
     const Field& f = fields[3];
     if (f.text.empty()) {
@@ -487,7 +514,7 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
       if (file_ch < 'a' || file_ch > 'h') {
         return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, file_ch);
       }
-      const char expected_rank = // das auch holy shit ist das schön
+      const char expected_rank =
           (new_state.side_to_move == Color::White) ? '6' : '3';
       if (rank_ch != expected_rank) {
         return fail(FenErrorCode::InvalidEnPassantSquare, f.offset + 1, rank_ch);
@@ -495,14 +522,20 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
 
       const int file = file_ch - 'a';
       const int rank = rank_ch - '1';
-      Square ep_square = static_cast<Square>(rank * 8 + file);
-      if (new_mailbox[+ep_square] != Piece::None ||
-          new_mailbox[+ep_square ^ 16] != Piece::None ||
-          (rank_ch == 3 && new_mailbox[+ep_square ^ 8] != Piece::WhitePawn) ||
-          (rank_ch == 6 && new_mailbox[+ep_square ^ 8] != Piece::BlackPawn)) {
-        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, '\0');
+      const uint8_t ep = static_cast<uint8_t>(rank * 8 + file);
+
+      // Der doppelt gezogene Bauer gehoert immer der Seite, die NICHT am Zug ist.
+      const Piece double_pushed =
+          (new_state.side_to_move == Color::White) ? Piece::BlackPawn
+                                                   : Piece::WhitePawn;
+
+      if (new_mailbox[ep] != Piece::None ||
+          new_mailbox[ep ^ 24] != Piece::None ||
+          new_mailbox[ep ^ 8] != double_pushed) {
+        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, file_ch);
       }
-        new_state.ep_square = ep_square;
+
+      new_state.ep_square = static_cast<Square>(ep);
     }
   }
 
