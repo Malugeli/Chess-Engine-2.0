@@ -11,24 +11,46 @@
 > aktualisieren und die Datei nach `main` pushen.
 
 ## Current
-FEN-Parser und Serializer sind vorhanden. Das Test-Target `chess_tests` ist
-verkabelt und läuft. Maher hat selbst einen ersten Round-Trip-Test für die
-Startstellung geschrieben (`set_fen(fen)` gefolgt von `to_fen() == fen`). Beide
-aktuellen Tests laufen grün. Der Test beweist den Weg Parser -> Board ->
-Serializer für genau diese eine FEN; eine breitere Testbasis fehlt noch.
+FEN-Parser und Serializer sind vorhanden, das Test-Target `chess_tests` ist
+verkabelt.
 
-Die nächste Validierungsregel wurde bereits durchdacht: Ein `bool` pro König
-reicht nicht, weil damit ein und mehrere Könige nicht unterschieden werden
-können. Stattdessen beim Parsen lokale Zähler für weiße und schwarze Könige
-verwenden und nach dem Figurenfeld jeweils exakt einen verlangen.
+Seit dem letzten Briefing sind zwei Commits dazugekommen (`45d195b Buggy mess`,
+`d85a546 Ep und Fen Parser Hilfe von KI`), zusammen +118/-21 in `src/board.cpp`,
+`src/board.hpp` und `tests/smoke.cpp`.
+
+Was davon belegt im Code steht:
+
+- **Die Königsvalidierung ist gebaut.** Beim Figurenparsen laufen lokale Zähler
+  `white_king` und `black_king`; nach dem Figurenfeld verlangt `src/board.cpp`
+  genau einen pro Farbe, sonst `FenErrorCode::InvalidKing`. Der Code
+  `InvalidKing` ist in `src/board.hpp` ergänzt. Damit ist der Hauptpunkt des
+  letzten Blocks erledigt.
+- Der Round-Trip-Test für die Startstellung liegt jetzt in `tests/smoke.cpp`
+  (`set_fen(fen)`, danach `to_fen() == fen`).
+
+**Nicht bestätigt:** In dieser Sitzung wurde nicht gebaut und `ctest` nicht
+ausgeführt. Ob die Tests aktuell grün sind, ist offen — das gehört als Erstes
+geprüft, zumal der vorletzte Commit "Buggy mess" heißt.
+
+Zwei Abweichungen vom Plan des letzten Briefings, die noch offen sind:
+
+- Die geplanten **Tests für 0, 1 und 2 Könige pro Farbe existieren nicht.** Die
+  Validierung ist also gebaut, aber unbewiesen.
+- Der Fehler wird als `fail(FenErrorCode::InvalidKing, 0, '\0')` gemeldet, also
+  **immer an Position 0**. Geplant war, einen zweiten König an dessen genauer
+  Stringposition abzulehnen und einen fehlenden erst am Ende des Figurenfeldes.
+  Für den fehlenden König passt das Vorgehen, für den zweiten nicht.
+
+Bauern auf Rang 1/8 werden weiterhin nicht validiert.
 
 ## Next 90-minute block
-- Morgen mit einer kleinen, isolierten Aufgabe anfangen: Tests für fehlende und
-  mehrfache Könige schreiben (0, 1 und 2 Könige pro Farbe). Bei Fehlerfällen
-  auch `FenErrorCode` und `position` prüfen.
-- Passende neue `FenErrorCode`-Werte festlegen und beim Parsen lokale
-  Königszähler verwenden. Einen zweiten König kann der Parser an dessen genauer
-  Stringposition ablehnen; einen fehlenden König am Ende des Figurenfeldes.
+- Zuerst bauen und `ctest` laufen lassen. Ohne grüne Basis hat alles Weitere
+  keinen Boden.
+- Die fehlenden Königstests nachziehen: 0, 1 und 2 Könige pro Farbe. Dabei auch
+  `FenErrorCode` **und** `position` prüfen — genau daran fällt auf, dass die
+  Position derzeit hart 0 ist.
+- Entscheiden, ob der zweite König an seiner Stringposition abgelehnt werden
+  soll (wie geplant), und die Meldung entsprechend nachziehen.
 - Danach Bauern auf Rang 1/8 mit eigenen Tests und Validierung behandeln.
 - Anschließend weitere echte FEN-Round-Trip-Tests anlegen: Kiwipete,
   En-passant- und Promotion-Stellungen sowie verschiedene Rochaderechte.
@@ -36,8 +58,13 @@ verwenden und nach dem Figurenfeld jeweils exakt einen verlangen.
   Rochaderechte gegen König-/Turmpositionen und En-passant gegen die Stellung.
 - Erst wenn diese Tests grün sind, mit Legalitätsfilter und Perft anfangen.
 
+## First step
+Im Projektordner bauen und `ctest` ausführen. Das Ergebnis notieren, bevor
+neuer Code entsteht.
+
 ## Blocked
-- Nichts
+- Nichts Hartes. Offen ist nur, ob die Testbasis nach den letzten beiden
+  Commits noch grün ist.
 
 ## Briefing notes
 Nicht direkt in die Perft-Implementierung springen: Der aktuelle Blocker ist
@@ -45,7 +72,7 @@ erst einmal die fehlende FEN-Validierung und eine belastbare Testbasis.
 
 Aufteilung der Validierung:
 - Beim Figurenparsen kostenlos prüfen, was dort bereits bekannt ist:
-  Königszahl und Bauern auf der ersten/letzten Reihe.
+  Königszahl (steht) und Bauern auf der ersten/letzten Reihe (fehlt).
 - Nach vollständigem Parsen, aber vor dem Commit in das echte `Board`,
   Zusammenhänge anhand von `new_mailbox` und `new_state` prüfen. Dafür muss der
   FEN-String nicht erneut durchlaufen werden.
