@@ -318,6 +318,8 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
     const Field& f = fields[0];
     int rank = 7;
     int file = 0;
+    int white_king = 0;
+    int black_king = 0; 
 
     for (size_t i = 0; i < f.text.size(); ++i) {
       const char ch = f.text[i];
@@ -340,13 +342,38 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
       // Ab hier muss es eine Figur sein.
       PieceType pt = PieceType::None;
       switch (ch) {
-        case 'P': case 'p': pt = PieceType::Pawn;   break;
-        case 'N': case 'n': pt = PieceType::Knight; break;
-        case 'B': case 'b': pt = PieceType::Bishop; break;
-        case 'R': case 'r': pt = PieceType::Rook;   break;
-        case 'Q': case 'q': pt = PieceType::Queen;  break;
-        case 'K': case 'k': pt = PieceType::King;   break;
-        default: return fail(FenErrorCode::InvalidPiece, pos, ch);
+      case 'P':
+      case 'p':
+        if (rank == 0 || rank == 7)
+          return fail(FenErrorCode::InvalidPiece, pos, ch);
+        pt = PieceType::Pawn;
+        break;
+      case 'N':
+      case 'n':
+        pt = PieceType::Knight;
+        break;
+      case 'B':
+      case 'b':
+        pt = PieceType::Bishop;
+        break;
+      case 'R':
+      case 'r':
+        pt = PieceType::Rook;
+        break;
+      case 'Q':
+      case 'q':
+        pt = PieceType::Queen;
+        break;
+      case 'K':
+        pt = PieceType::King;
+        ++white_king;
+        break;
+      case 'k':
+        pt = PieceType::King;
+        ++black_king;
+        break;
+      default:
+        return fail(FenErrorCode::InvalidPiece, pos, ch);
       }
 
       if (file > 7) return fail(FenErrorCode::InvalidRankWidth, pos, ch);
@@ -361,6 +388,9 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
     }
     if (rank != 0) {
       return fail(FenErrorCode::InvalidRankCount, f.offset + f.text.size(), '\0');
+    }
+    if(black_king != 1 || white_king != 1){
+      return fail(FenErrorCode::InvalidKing, 0, '\0');
     }
   }
 
@@ -396,10 +426,35 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
 
         CastlingRight bit;
         switch (ch) {
-          case 'K': bit = CastlingRight::White_Short; break;
-          case 'Q': bit = CastlingRight::White_Long;  break;
-          case 'k': bit = CastlingRight::Black_Short; break;
-          case 'q': bit = CastlingRight::Black_Long;  break;
+        case 'K':
+          if (new_mailbox[+Square::e1] != Piece::WhiteKing ||
+              new_mailbox[+Square::h1] != Piece::WhiteRook) {
+            return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+          }
+          bit = CastlingRight::White_Short; break;
+
+          case 'Q':
+            if (new_mailbox[+Square::e1] != Piece::WhiteKing ||
+                new_mailbox[+Square::a1] != Piece::WhiteRook) {
+              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+            }
+          bit = CastlingRight::White_Long;  break;
+
+          case 'k':
+            if (new_mailbox[+Square::e8] != Piece::BlackKing ||
+                new_mailbox[+Square::a8] != Piece::BlackRook) {
+              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+            }
+            bit = CastlingRight::Black_Short;
+            break;
+
+          case 'q':
+            if (new_mailbox[+Square::e8] != Piece::BlackKing ||
+                new_mailbox[+Square::a8] != Piece::BlackRook) {
+              return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
+            }
+            bit = CastlingRight::Black_Long;
+            break;
           default: return fail(FenErrorCode::InvalidCastlingRights, pos, ch);
         }
         // Doppeltes Zeichen, z. B. "KKkq" -- Den Check muss ich mir merken der ist crazy gut
@@ -440,7 +495,14 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
 
       const int file = file_ch - 'a';
       const int rank = rank_ch - '1';
-      new_state.ep_square = static_cast<Square>(rank * 8 + file);
+      Square ep_square = static_cast<Square>(rank * 8 + file);
+      if (new_mailbox[+ep_square] != Piece::None ||
+          new_mailbox[+ep_square ^ 16] != Piece::None ||
+          (rank_ch == 3 && new_mailbox[+ep_square ^ 8] != Piece::WhitePawn) ||
+          (rank_ch == 6 && new_mailbox[+ep_square ^ 8] != Piece::BlackPawn)) {
+        return fail(FenErrorCode::InvalidEnPassantSquare, f.offset, '\0');
+      }
+        new_state.ep_square = ep_square;
     }
   }
 

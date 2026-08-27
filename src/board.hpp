@@ -8,6 +8,7 @@
 
 enum class FenErrorCode {
   WrongFieldCount,
+  InvalidKing,
   InvalidPiece,
   InvalidRankCount,
   InvalidRankWidth,
