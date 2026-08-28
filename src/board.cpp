@@ -1,6 +1,5 @@
 #include <bit>
 #include <charconv>
-#include <ranges>
 #include <algorithm>
 
 #include "board.hpp"
@@ -113,6 +112,10 @@ void Board::remove_piece(Color c, PieceType p, Square s) noexcept {
   bitmaps[get_index(c, p)] &= ~mask;
   color_board[+c] &= ~mask;
   mailbox[+s] = Piece::None;
+}
+
+Square Board::get_king_square(const Color c) const noexcept{
+  return static_cast<Square>(std::countr_zero(get_bitmap(c, PieceType::King)));
 }
 
 //bevor ich den Zug ausführe muss den Gamestate speichern um es später wieder rückgängig zu machen

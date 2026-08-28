@@ -53,6 +53,7 @@ private:
   void undo_move(Move m) noexcept;
   uint64_t get_bitmap(Color color, PieceType piece) const noexcept;
   uint64_t get_color_board(Color color) const noexcept;
+  Square get_king_square(const Color c) const noexcept;
   const GameState& get_gamestate() const noexcept;
   Piece get_piece_at(Square square) const noexcept;
   uint64_t occupied() const noexcept;
