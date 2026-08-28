@@ -49,6 +49,7 @@ add_library(chess_core STATIC
     src/board.cpp
     src/debug.cpp
     src/movegen.cpp
+    src/perft.cpp
 )
 
 # PUBLIC = wer gegen chess_core linkt, erbt src/ im Include-Pfad.
