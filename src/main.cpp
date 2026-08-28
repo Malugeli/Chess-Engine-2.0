@@ -1,7 +1,6 @@
 #include <print>
-#include "movegen.hpp"
-#include "debug.hpp"
 #include "board.hpp"
+#include "perft.hpp"
 
 int main() {
   // std::print("e4:\n{}\n", pretty_bitboard(kKnightAttack[std::to_underlying(Square::e4)]));
@@ -11,5 +10,8 @@ int main() {
   // std::print("e4:\n{}\n", pretty_bitboard(kKingAttack[std::to_underlying(Square::e4)]));
 
   Board board;
-  std::print("a2:\n{}\n", pretty_bitboard(queen_attacks(Square::e4, board.occupied())));
+  auto test = board.set_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+  if (test) {
+    std::println("{}", perft(board, 2));
+  }
 }
