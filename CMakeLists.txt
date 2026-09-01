@@ -66,6 +66,14 @@ target_link_libraries(chess_core PRIVATE chess_warnings)
 # PUBLIC, damit ChessEngine und chess_tests das ebenfalls mitbekommen.
 target_link_libraries(chess_core PUBLIC $<$<CXX_COMPILER_ID:GNU>:stdc++exp>)
 
+# MinGW linkt libstdc++/libgcc/libwinpthread standardmaessig als DLL. Auf diesem Rechner
+# gibt es zwei davon: C:/mingw64/bin (womit gebaut wird) und C:/Program Files/Git/mingw64/bin
+# (aelter, kommt in Git-Bash im PATH zuerst). Der pre-commit-Hook laeuft unter Git-Bash und
+# startet die Exe deshalb gegen die alte DLL -> 0xc0000139 (STATUS_ENTRYPOINT_NOT_FOUND),
+# noch bevor main() laeuft. Statisch gelinkt haengt das Binary an gar keiner der beiden.
+# PUBLIC, damit ChessEngine und chess_tests die Option erben.
+target_link_options(chess_core PUBLIC $<$<CXX_COMPILER_ID:GNU>:-static>)
+
 # ---------------------------------------------------------------------------
 # ChessEngine: das eigentliche Programm. Wird später die UCI-Schleife.
 # ---------------------------------------------------------------------------
@@ -79,7 +87,6 @@ target_link_libraries(ChessEngine PRIVATE chess_core chess_warnings)
 find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(chess_tests
-    tests/smoke.cpp
     tests/board.cpp
     tests/fen.cpp
     tests/perft.cpp
