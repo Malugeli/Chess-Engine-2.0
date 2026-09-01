@@ -11,76 +11,63 @@
 > aktualisieren und die Datei nach `main` pushen.
 
 ## Current
-FEN-Parser und Serializer sind vorhanden, das Test-Target `chess_tests` ist
-verkabelt.
+FEN-Parser und Serializer sind vorhanden. Move-Generation, Legalitätsfilter,
+`do_move`/`undo_move` und `perft` bestehen die sechs kanonischen
+Chess-Programming-Wiki-Stellungen.
 
-Seit dem letzten Briefing sind zwei Commits dazugekommen (`45d195b Buggy mess`,
-`d85a546 Ep und Fen Parser Hilfe von KI`), zusammen +118/-21 in `src/board.cpp`,
-`src/board.hpp` und `tests/smoke.cpp`.
+Die Perft-Tests in `tests/perft.cpp` sind in zwei Gruppen getrennt:
 
-Was davon belegt im Code steht:
+- `[perft][fast]`: alle sechs Stellungen bis Tiefe 3.
+- `[perft][slow]`: je Stellung eine tiefere, nach Knotenzahl ausgewählte
+  Referenzprüfung (Tiefe 4 bis 6).
 
-- **Die Königsvalidierung ist gebaut.** Beim Figurenparsen laufen lokale Zähler
-  `white_king` und `black_king`; nach dem Figurenfeld verlangt `src/board.cpp`
-  genau einen pro Farbe, sonst `FenErrorCode::InvalidKing`. Der Code
-  `InvalidKing` ist in `src/board.hpp` ergänzt. Damit ist der Hauptpunkt des
-  letzten Blocks erledigt.
-- Der Round-Trip-Test für die Startstellung liegt jetzt in `tests/smoke.cpp`
-  (`set_fen(fen)`, danach `to_fen() == fen`).
+Beide Gruppen wurden am 31.08.2026 im Debug-Build ausgeführt und sind grün. Die
+schnellen Tests umfassen 50 Assertions, die langsamen 24 Assertions. Jeder
+Perft-Test prüft außerdem, dass das Board nach der Berechnung wieder exakt als
+ursprüngliche FEN serialisiert wird.
 
-**Nicht bestätigt:** In dieser Sitzung wurde nicht gebaut und `ctest` nicht
-ausgeführt. Ob die Tests aktuell grün sind, ist offen — das gehört als Erstes
-geprüft, zumal der vorletzte Commit "Buggy mess" heißt.
+`catch_discover_tests` übernimmt die Catch2-Tags mit `ADD_TAGS_AS_LABELS` als
+CTest-Labels. Dadurch kann CTest Fast und Slow filtern.
 
-Zwei Abweichungen vom Plan des letzten Briefings, die noch offen sind:
+Ein getrackter Hook liegt unter `.githooks/pre-commit`. Das Repository ist lokal
+über `core.hooksPath=.githooks` damit verbunden. Vor jedem Commit baut der Hook
+die Debug-Konfiguration und führt mit `ctest --preset Debug -LE slow` alle
+nicht-langsamen Tests aus. Ein Build- oder Testfehler bricht den Commit ab.
 
-- Die geplanten **Tests für 0, 1 und 2 Könige pro Farbe existieren nicht.** Die
-  Validierung ist also gebaut, aber unbewiesen.
-- Der Fehler wird als `fail(FenErrorCode::InvalidKing, 0, '\0')` gemeldet, also
-  **immer an Position 0**. Geplant war, einen zweiten König an dessen genauer
-  Stringposition abzulehnen und einen fehlenden erst am Ende des Figurenfeldes.
-  Für den fehlenden König passt das Vorgehen, für den zweiten nicht.
+Noch offen:
 
-Bauern auf Rang 1/8 werden weiterhin nicht validiert.
+- `tests/fen.cpp` und `tests/board.cpp` sind noch leer.
+- Tests für 0, 1 und 2 Könige pro Farbe fehlen weiterhin.
+- `InvalidKing` meldet derzeit immer Position 0; das gewünschte Verhalten für
+  einen zweiten König ist noch zu entscheiden und zu testen.
+- Bauern auf Rang 1 oder 8 werden noch nicht validiert.
 
 ## Next 90-minute block
-- Zuerst bauen und `ctest` laufen lassen. Ohne grüne Basis hat alles Weitere
-  keinen Boden.
-- Die fehlenden Königstests nachziehen: 0, 1 und 2 Könige pro Farbe. Dabei auch
-  `FenErrorCode` **und** `position` prüfen — genau daran fällt auf, dass die
-  Position derzeit hart 0 ist.
-- Entscheiden, ob der zweite König an seiner Stringposition abgelehnt werden
-  soll (wie geplant), und die Meldung entsprechend nachziehen.
-- Danach Bauern auf Rang 1/8 mit eigenen Tests und Validierung behandeln.
-- Anschließend weitere echte FEN-Round-Trip-Tests anlegen: Kiwipete,
-  En-passant- und Promotion-Stellungen sowie verschiedene Rochaderechte.
-- Erst danach feldübergreifende Plausibilitätsregeln bearbeiten:
-  Rochaderechte gegen König-/Turmpositionen und En-passant gegen die Stellung.
-- Erst wenn diese Tests grün sind, mit Legalitätsfilter und Perft anfangen.
+- Mit gezielten FEN-Tests beginnen, nicht mit weiterer Perft-Infrastruktur.
+- Zuerst festlegen und testen, wie 0, 1 und 2 Könige pro Farbe behandelt werden.
+  Neben Erfolg/Misserfolg auch `FenErrorCode` und Fehlerposition prüfen.
+- Danach ungültige Bauern auf Rang 1 und 8 testgetrieben behandeln.
+- Prüfen, dass ein fehlgeschlagenes `set_fen` das vorherige Board nicht
+  verändert.
+- Anschließend gültige Round-Trips für Rochaderechte, En-passant und
+  Promotionsstellungen ergänzen.
 
 ## First step
-Im Projektordner bauen und `ctest` ausführen. Das Ergebnis notieren, bevor
-neuer Code entsteht.
+Eine einzelne, klar benannte FEN-Anforderung auswählen und zuerst den
+zugehörigen Test in `tests/fen.cpp` schreiben. Der Pre-Commit-Hook übernimmt den
+schnellen Basischeck automatisch.
 
 ## Blocked
-- Nichts Hartes. Offen ist nur, ob die Testbasis nach den letzten beiden
-  Commits noch grün ist.
+- Nichts.
 
 ## Briefing notes
-Nicht direkt in die Perft-Implementierung springen: Der aktuelle Blocker ist
-erst einmal die fehlende FEN-Validierung und eine belastbare Testbasis.
+Perft ist für den aktuellen Stand ausreichend abgesichert. Weitere Tiefe oder
+weitere Perft-Stellungen bringen momentan weniger als gezielte Parser- und
+Board-Tests.
 
-Aufteilung der Validierung:
-- Beim Figurenparsen kostenlos prüfen, was dort bereits bekannt ist:
-  Königszahl (steht) und Bauern auf der ersten/letzten Reihe (fehlt).
-- Nach vollständigem Parsen, aber vor dem Commit in das echte `Board`,
-  Zusammenhänge anhand von `new_mailbox` und `new_state` prüfen. Dafür muss der
-  FEN-String nicht erneut durchlaufen werden.
-
-Der spätere erste Legalitätsfilter soll noch keine speziellen Pin-Masken
-berechnen. Zuerst korrekt und einfach: pseudo-legalen Zug ausführen, prüfen ob
-der eigene König angegriffen ist, Zug zurücknehmen und illegale Züge verwerfen.
-Direkte Pin-Erkennung kommt erst als Optimierung nach korrektem Perft.
+Der lokale Hook ist ein Komfort- und Sicherheitsnetz, aber überspringbar. Eine
+GitHub-Actions-Prüfung und ein verpflichtender Status-Check für `main` sind noch
+nicht eingerichtet und können später als unabhängige CI-Sicherung folgen.
 
 ## Last updated
-2026-08-27
+2026-08-31

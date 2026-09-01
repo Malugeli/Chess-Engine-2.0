@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -eu
+
+echo "Pre-commit: baue Debug-Konfiguration ..."
+cmake --build --preset Debug
+
+echo "Pre-commit: fuehre alle nicht-langsamen Tests aus ..."
+ctest --preset Debug -LE slow --output-on-failure

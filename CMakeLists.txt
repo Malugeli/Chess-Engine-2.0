@@ -80,6 +80,9 @@ find_package(Catch2 3 CONFIG REQUIRED)
 
 add_executable(chess_tests
     tests/smoke.cpp
+    tests/board.cpp
+    tests/fen.cpp
+    tests/perft.cpp
 )
 target_link_libraries(chess_tests PRIVATE chess_core Catch2::Catch2WithMain)
 
@@ -87,7 +90,7 @@ target_link_libraries(chess_tests PRIVATE chess_core Catch2::Catch2WithMain)
 # TEST_CASEs und registriert jeden einzeln bei CTest. Dadurch zeigt ctest
 # "FEN round-trip ... Failed" statt nur "chess_tests ist rot".
 include(Catch)
-catch_discover_tests(chess_tests)
+catch_discover_tests(chess_tests ADD_TAGS_AS_LABELS)
 
 # ---------------------------------------------------------------------------
 # Benchmarks: erst relevant, wenn Perft läuft und du Magic Bitboards misst.

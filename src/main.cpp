@@ -12,6 +12,6 @@ int main() {
   Board board;
   auto test = board.set_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
   if (test) {
-    std::println("{}", perft(board, 2));
+    print_perft_divide(board, 2);
   }
 }

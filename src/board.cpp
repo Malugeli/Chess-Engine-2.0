@@ -371,11 +371,13 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
         break;
       case 'K':
         pt = PieceType::King;
-        ++white_king;
+        if (++white_king > 1)
+          return fail(FenErrorCode::MultipleKings, pos, ch);
         break;
       case 'k':
         pt = PieceType::King;
-        ++black_king;
+        if (++black_king > 1)
+          return fail(FenErrorCode::MultipleKings, pos, ch);
         break;
       default:
         return fail(FenErrorCode::InvalidPiece, pos, ch);
@@ -394,8 +396,9 @@ std::expected<void, FenError> Board::set_fen(std::string_view fen) {
     if (rank != 0) {
       return fail(FenErrorCode::InvalidRankCount, f.offset + f.text.size(), '\0');
     }
-    if(black_king != 1 || white_king != 1){
-      return fail(FenErrorCode::InvalidKing, 0, '\0');
+    // Zu viele Koenige sind oben schon rausgeflogen, hier fehlt also nur noch einer.
+    if (white_king == 0 || black_king == 0) {
+      return fail(FenErrorCode::NoKing, f.offset + f.text.size(), '\0');
     }
   }
 
