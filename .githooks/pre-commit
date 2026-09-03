@@ -2,8 +2,21 @@
 
 set -eu
 
-echo "Pre-commit: baue Debug-Konfiguration ..."
-cmake --build --preset Debug
+case "$(uname -s)" in
+    Linux*)
+        preset="linux-debug"
+        ;;
+    MINGW* | MSYS* | CYGWIN*)
+        preset="windows-debug"
+        ;;
+    *)
+        echo "Pre-commit: unbekanntes Betriebssystem: $(uname -s)" >&2
+        exit 1
+        ;;
+esac
+
+echo "Pre-commit: baue Debug-Konfiguration (${preset}) ..."
+cmake --build --preset "${preset}"
 
 echo "Pre-commit: fuehre alle nicht-langsamen Tests aus ..."
-ctest --preset Debug -LE slow --output-on-failure
+ctest --preset "${preset}" -LE slow --output-on-failure
