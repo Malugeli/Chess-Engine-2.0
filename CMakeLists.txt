@@ -71,8 +71,11 @@ target_link_libraries(chess_core PUBLIC $<$<CXX_COMPILER_ID:GNU>:stdc++exp>)
 # (aelter, kommt in Git-Bash im PATH zuerst). Der pre-commit-Hook laeuft unter Git-Bash und
 # startet die Exe deshalb gegen die alte DLL -> 0xc0000139 (STATUS_ENTRYPOINT_NOT_FOUND),
 # noch bevor main() laeuft. Statisch gelinkt haengt das Binary an gar keiner der beiden.
-# PUBLIC, damit ChessEngine und chess_tests die Option erben.
-target_link_options(chess_core PUBLIC $<$<CXX_COMPILER_ID:GNU>:-static>)
+# Das ist ein Windows-MinGW-Workaround: auf Linux waere pauschales -static unnoetig und kann
+# fehlende statische Systembibliotheken verursachen. PUBLIC, damit beide Exes die Option erben.
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(chess_core PUBLIC -static)
+endif()
 
 # ---------------------------------------------------------------------------
 # ChessEngine: das eigentliche Programm. Wird später die UCI-Schleife.
