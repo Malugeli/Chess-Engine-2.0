@@ -13,13 +13,11 @@ uint64_t perft(Board& b, int depth){
     Color us = b.get_gamestate().side_to_move;
     uint64_t move_count{};
     MoveList list;
-    generate_moves(b, list);
+    generate_pseudo_legal_moves(b, list);
 
     for(auto move : list){
         b.do_move(move);
-        const Color enemy =  b.get_gamestate().side_to_move;
-        Square king_square = b.get_king_square(us);
-        if(!is_square_attacked(b, king_square, enemy)){
+        if(!is_in_check(b, us)){
             move_count += perft(b, depth - 1);
         }
         b.undo_move(move);
@@ -34,13 +32,11 @@ std::vector<PerftDivideEntry> perft_divide(Board& b, int depth){
     }
     const Color us = b.get_gamestate().side_to_move;
     MoveList list;
-    generate_moves(b, list);
+    generate_pseudo_legal_moves(b, list);
 
     for(auto move : list){
         b.do_move(move);
-        const Color enemy = b.get_gamestate().side_to_move;
-        const Square king_square = b.get_king_square(us);
-        if(!is_square_attacked(b, king_square, enemy)){
+        if(!is_in_check(b, us)){
             result.push_back(PerftDivideEntry{move, perft(b, depth - 1)});
         }
         b.undo_move(move);

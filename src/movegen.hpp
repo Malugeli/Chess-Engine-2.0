@@ -44,8 +44,11 @@ struct MoveList{
   void clear() noexcept { counter = 0;}
 };
 
-void generate_moves(const Board& b, MoveList& list) noexcept;
+void generate_pseudo_legal_moves(const Board& b, MoveList& list) noexcept;
+void generate_legal_moves(Board& b, MoveList& list) noexcept;
+bool is_in_check(const Board& b, Color c);
 bool is_square_attacked(const Board &b, Square target, Color by);
+bool is_legal_move(Board& b, const Move m);
 
 // Leaper Pieces:
 inline constexpr std::array<std::array<uint64_t, 64>, 2> kPawnAttack = []() {

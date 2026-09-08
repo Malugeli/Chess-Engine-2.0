@@ -92,6 +92,7 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(chess_tests
     tests/board.cpp
     tests/fen.cpp
+    tests/movegen.cpp
     tests/perft.cpp
 )
 target_link_libraries(chess_tests PRIVATE chess_core Catch2::Catch2WithMain)

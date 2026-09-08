@@ -216,7 +216,7 @@ static void generate_castling_moves(const Board &b, MoveList &list) {
   }
 }
 
-void generate_moves(const Board& b, MoveList& list) noexcept {
+void generate_pseudo_legal_moves(const Board& b, MoveList& list) noexcept{
   list.clear();
   Color turn_player = b.get_gamestate().side_to_move;
   
@@ -227,6 +227,33 @@ void generate_moves(const Board& b, MoveList& list) noexcept {
   generate_bishop_moves(b, turn_player, list);
   generate_queen_moves(b, turn_player, list);
   generate_castling_moves(b, list);
+}
+
+void generate_legal_moves(Board& b, MoveList& list) noexcept{
+  MoveList pseudo_list;
+  generate_pseudo_legal_moves(b, pseudo_list);
+
+  list.clear();
+
+  for(auto move : pseudo_list){
+    if(is_legal_move(b, move)){
+      list.add(move);
+    }
+  }
+}
+
+bool is_in_check(const Board& b, const Color us){
+  const Color enemy = static_cast<Color>(!static_cast<int>(us));
+  Square king_square = b.get_king_square(us);
+  return is_square_attacked(b, king_square, enemy);
+}
+
+bool is_legal_move(Board& b, const Move m){
+  Color us = b.get_gamestate().side_to_move;
+  b.do_move(m);
+  auto legal = !is_in_check(b, us); //Wenn legal muss False daher umdrehen
+  b.undo_move(m);
+  return legal;
 }
 
 uint64_t rook_attacks(Square square, uint64_t occupied){
