@@ -50,6 +50,7 @@ add_library(chess_core STATIC
     src/debug.cpp
     src/movegen.cpp
     src/perft.cpp
+    src/zobrist.cpp
 )
 
 # PUBLIC = wer gegen chess_core linkt, erbt src/ im Include-Pfad.
@@ -94,7 +95,9 @@ add_executable(chess_tests
     tests/fen.cpp
     tests/movegen.cpp
     tests/perft.cpp
+    tests/zobrist.cpp
 )
+
 target_link_libraries(chess_tests PRIVATE chess_core Catch2::Catch2WithMain)
 
 # catch_discover_tests ruft die fertige .exe auf, fragt sie nach ihren
